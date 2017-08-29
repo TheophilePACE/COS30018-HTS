@@ -1,5 +1,5 @@
 /* ----------------------------------------------------------------- */
-/*   Run MyJADEController for Appliance / Responder demonstration    */
+/*    Run ApplianceAgentController for Appliance / Responder demo    */
 /* ----------------------------------------------------------------- */
 
 package applianceAgent;
