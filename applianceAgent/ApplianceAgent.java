@@ -16,15 +16,9 @@ import jade.domain.FIPANames;
 
 import java.util.Date;
 
-import org.json.*;
+//import org.json.*;
 
 public class ApplianceAgent extends Agent {
-	public String log(String s) {
-		String toPrint = "[" + getLocalName() + "] " + s;
-		System.out.println(toPrint);
-		return toPrint;
-	}
-	
 	private int getComsumption() {
 		return (int) Math.ceil(Math.random() * 10); 
 	}
@@ -94,5 +88,10 @@ public class ApplianceAgent extends Agent {
 	protected void takeDown() {
 		log("Preparing to die");
 		// do cleanup
+	}
+	private String log(String s) {
+		String toPrint = "[" + getLocalName() + "] " + s;
+		System.out.println(toPrint);
+		return toPrint;
 	}
 }
