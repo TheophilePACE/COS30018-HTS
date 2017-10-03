@@ -5,13 +5,13 @@
 package applianceAgent;
 
 import jade.core.Runtime;
-import applianceAgent.ApplianceAgent;
-import applianceAgent.ApplianceResponderAgent;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.wrapper.*;
 
 public class ApplianceAgentController {
+	private static String HOME_AGENT_ADDRESS = "homeAgent";
+	private static long CYCLE_TIME = 10000;
 	public static void main(String[] args) throws StaleProxyException, InterruptedException {
 		
 		// Get a hold to the JADE runtime
@@ -23,16 +23,12 @@ public class ApplianceAgentController {
 		pMain.setParameter(Profile.GUI, "true");
 		ContainerController mainCtrl = rt.createMainContainer(pMain);
 		
-		// Start ApplianceResponder agent
-		AgentController responderCtrl = mainCtrl.createNewAgent("Responder", ApplianceResponderAgent.class.getName(), new Object[0]);
-		responderCtrl.start();
-		
 		// Start Appliance Agent
 		// appArgs[0] determines energy msg tick rate of ApplianceAgent
 		// appArgs[1] determines energy msg receiver
 		Object[] appArgs = new Object[2];
-		appArgs[0] = (long)10000;
-		appArgs[1] = "Responder";
+		appArgs[0] = CYCLE_TIME;
+		appArgs[1] = HOME_AGENT_ADDRESS;
 		AgentController applianceCtrl = mainCtrl.createNewAgent("Appliance", ApplianceAgent.class.getName(), appArgs);
 		applianceCtrl.start();
 	}

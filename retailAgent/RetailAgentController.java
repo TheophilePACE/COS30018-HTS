@@ -24,7 +24,7 @@ public class RetailAgentController {
 		// Launch the Main Container (with the administration GUI on top) listening on port 1099
 		System.out.println(RetailAgentController.class.getName() 
 				+ ": Launching the platform Main Container on port "+ PORT +" ...");
-		Profile pMain = new ProfileImpl(HOST, 1099, null);
+		Profile pMain = new ProfileImpl(HOST, PORT, null);
 		pMain.setParameter(Profile.GUI, "true");
 		ContainerController mainCtrl = rt.createMainContainer(pMain);
 		
@@ -34,7 +34,7 @@ public class RetailAgentController {
 		retailers.forEach((k,v) -> {
 			try {
 				log("Creating agent " + k + " with args " + v[0] + " ; "+v[1]);
-				mainCtrl.createNewAgent(k, RetailAgent.class.getName(), v).start();;
+				mainCtrl.createNewAgent(k, RetailAgent.class.getName(), v).start();
 				log("Started retailer : " + k);
 			} catch (Exception e) {
 				log(e.toString());
