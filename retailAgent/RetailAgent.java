@@ -46,7 +46,7 @@ public class RetailAgent extends Agent {
 		addBehaviour(new HandleNegotiationBehaviour());
 
 		// Printout a welcome message
-		log("ready! He provides the service: " + type + " and is working for company: " + name);
+		log("reatiler ready! provide the service: " + type + " and is working for company: " + name);
 	}
 
 	// Method to register the service
