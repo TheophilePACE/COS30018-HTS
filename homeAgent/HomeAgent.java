@@ -47,7 +47,6 @@ public class HomeAgent extends Agent {
 		
 		CyclicBehaviour energyBalanceReceivingBehaviour = (new CyclicBehaviour(this) {
 			public void action() {
-				log(" Waiting for energyBalanceMessages");
 				ACLMessage msg= receive();
 				if (msg!=null) {
 					// Print out message content
