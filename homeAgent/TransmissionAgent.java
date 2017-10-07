@@ -37,7 +37,6 @@ public class TransmissionAgent  extends Agent {
 
 			@Override
 			public void action() {
-				System.out.println("\n");
 				ACLMessage msg= receive();
 				//check if msgf and is the msg is a request (from home)
 				if (msg!=null) {

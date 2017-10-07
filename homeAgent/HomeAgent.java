@@ -57,6 +57,8 @@ public class HomeAgent extends Agent {
 
 		TickerBehaviour triggerEnergyBalance = (new TickerBehaviour(this,CYCLE_TIME) {
 			public void onTick() {
+				System.out.println();
+				log("<---------------- NEW CYCLE ----------------->");
 				//Get all aplliances address
 				applianceList = getAgentDescriptionList("Appliance");
 				//MSG to all appliances asking for consumption
@@ -138,6 +140,9 @@ public class HomeAgent extends Agent {
 			JSONObject response = new JSONObject(inform.getContent());
 			log(inform.getSender().getLocalName() + " successfully performed the request: '" + tR.getContent()
 			+ " negotiated price of: '" + response.getDouble("price") + " c/kWh'");
+			log("<-----------------END OF NEGOTIATION ---------------------->");
+			System.out.println();
+			System.out.println();
 		}
 
 		// Method to handle a refuse message from responder
