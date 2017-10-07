@@ -2,7 +2,6 @@ package homeAgent;
 
 import jade.core.AID;
 import jade.core.Agent;
-import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
@@ -43,7 +42,6 @@ public class HomeAgent extends Agent {
 			MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST),
 			MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
 
-	private int nResponders =0;
 	protected void setup() {
 		//FIPANames.InteractionProtocol.FIPA_REQUEST
 		Object[] args = getArguments();
@@ -57,110 +55,105 @@ public class HomeAgent extends Agent {
 			log("I have been created. DEFAULT maxBuyingPrice is "+ maxBuyingPrice +" and minSellingPrice is "+ minSellingPrice);
 		}
 
-
-
-		CyclicBehaviour energyBalanceReceivingBehaviour = (new CyclicBehaviour(this) {
-			public void action() {
-				ACLMessage msg= receive();
-				if (msg!=null) {
-					// Print out message content
-					log(": Received message " + msg.getContent() + " from " + msg.getSender().getLocalName());
-					if(energyBalanceMessageTemplate.match(msg)) {
-						JSONObject JSONmsg = new JSONObject(msg.getContent());
-						log("energy balance for " + msg.getSender().getLocalName() + " => consumption: " + JSONmsg.getInt("consumption"));
-						setApplianceEnergyBalance(msg.getSender().getLocalName(), new Integer(JSONmsg.getInt("consumption")));
-					} else {
-						log("received message not matching : "+ msg.getSender().getName() + msg.getContent() );
-					}
-				}
-				// Continue listening
-				block();
-			}
-		}
-				);
-
 		TickerBehaviour triggerEnergyBalance = (new TickerBehaviour(this,CYCLE_TIME) {
 			public void onTick() {
+				//Get all aplliances address
 				applianceList = getAgentDescriptionList("Appliance");
-				ACLMessage energyRequest = createConsumptionRequest(applianceList);
-				nResponders = applianceList.length;
-				addBehaviour(new AchieveREInitiator(myAgent, energyRequest) {
-					protected void handleInform(ACLMessage inform) {
-						log("Consumption INFORM :"+inform.getSender()+"-->"+inform.getContent());
-						nResponders--;
-					}
-					protected void handleRefuse(ACLMessage refuse) {
-						log("Consumption REFUSE :"+refuse.getSender()+"-->"+refuse.getContent());
-						nResponders--;
-					}
-					protected void handleFailure(ACLMessage failure) {
-						if (failure.getSender().equals(myAgent.getAMS())) {
-							// FAILURE notification from the JADE runtime: the receiver
-							// does not exist
-							System.out.println("Responder does not exist");
-						}
-						else {
-							System.out.println("Agent "+failure.getSender().getName()+" failed to perform the requested action");
-						}
-					}
-					protected void handleAllResultNotifications(@SuppressWarnings("rawtypes") Vector notifications) {
-						if (notifications.size() < nResponders) {
-							// Some responder didn't reply within the specified timeout
-							log("Timeout expired: missing "+(nResponders - notifications.size())+" responses");
-						} else {
-							log("ALL RESPONES RECEIVED");
-						}
-					}
-				} );
-
-				log("Going to compute balance");
-				int quantity =  makeEnergyBalance();
-				log("Consumption: " + energyConsumed + " production: " + energyProducted + " --> BALANCE = " + quantity);
-				ACLMessage requestToTransmissionAgent = new ACLMessage(ACLMessage.REQUEST);
-				// Add receivers from input args
-				requestToTransmissionAgent.addReceiver(new AID(transmissionAgentAddress, AID.ISLOCALNAME));
-				// Set the interaction protocol
-				requestToTransmissionAgent.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
-				// Specify the reply deadline (10 seconds)
-				requestToTransmissionAgent.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
-				// Set message content, if quantity >0 we need to buy otherwise sell
-				String contentJSON = "{'quantity':" + quantity + "}";
-
-				requestToTransmissionAgent.setContent(contentJSON);
-				myAgent.addBehaviour(new AchieveREInitiator(myAgent, requestToTransmissionAgent) {
-					protected void handleAgree(ACLMessage agree) {
-						log(agree.getSender().getLocalName() + " has agreed to the request");
-					}
-
-					// Method to handle an inform message from responder
-					protected void handleInform(ACLMessage inform) {
-						JSONObject response = new JSONObject(inform.getContent());
-						log(inform.getSender().getLocalName() + " successfully performed the request: '" + requestToTransmissionAgent.getContent()
-						+ " negotiated price of: '" + response.getDouble("price") + " c/kWh'");
-					}
-
-					// Method to handle a refuse message from responder
-					protected void handleRefuse(ACLMessage refuse) {
-						log(refuse.getSender().getLocalName() + " refused to perform the requested action");
-					}
-
-					// Method to handle a failure message (failure in delivering the message)
-					protected void handleFailure(ACLMessage failure) {
-						if (failure.getSender().equals(myAgent.getAMS())) {
-							// FAILURE notification from the JADE runtime: the receiver (receiver does not exist)
-							log("Responder does not exist");
-						} else {
-							log(failure.getSender().getLocalName() + " failed to perform the requested action");
-						}
-					}
-				});
+				//MSG to all appliances asking for consumption
+				ACLMessage consumptionRequest = createConsumptionRequest(applianceList);
+				addBehaviour(new collectApplianceEnergyBalances(myAgent,consumptionRequest, applianceList.length));
 			}
 		});
-
-
-		addBehaviour(energyBalanceReceivingBehaviour);
-
 		addBehaviour(triggerEnergyBalance);
+	}
+	
+	private class collectApplianceEnergyBalances extends AchieveREInitiator {
+		private int nResponders =0;
+		private Agent a;
+		public collectApplianceEnergyBalances(Agent ag, ACLMessage consumptionRequest, int nbAppliances) {
+			super(ag, consumptionRequest);
+			a= ag;
+			nResponders = nbAppliances;
+		}
+		private ACLMessage createTradeRequest(int quantity) {
+			
+			ACLMessage tradeRequest = new ACLMessage(ACLMessage.REQUEST);
+			// Add receivers from input args
+			tradeRequest.addReceiver(new AID(transmissionAgentAddress, AID.ISLOCALNAME));
+			// Set the interaction protocol
+			tradeRequest.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
+			// Specify the reply deadline (10 seconds)
+			tradeRequest.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
+			// Set message content, if quantity >0 we need to buy otherwise sell
+			String contentJSON = "{'quantity':" + quantity + "}";
+			tradeRequest.setContent(contentJSON);
+			return tradeRequest;
+		}
+		protected void handleInform(ACLMessage inform) {
+			//Received the expected information
+			JSONObject JSONmsg = new JSONObject(inform.getContent());
+			log("energy balance for " + inform.getSender().getLocalName() + " => consumption: " + JSONmsg.getInt("consumption"));
+			setApplianceEnergyBalance(inform.getSender().getLocalName(), new Integer(JSONmsg.getInt("consumption")));
+			nResponders--;
+		}
+		protected void handleFailure(ACLMessage failure) {
+			if (failure.getSender().equals(a.getAMS())) {
+				// FAILURE notification from the JADE runtime: the receiver
+				// does not exist
+				System.out.println("Responder does not exist");
+			}
+			else {
+				System.out.println("Agent "+failure.getSender().getName()+" failed to perform the requested action");
+			}
+		}
+		protected void handleAllResultNotifications(@SuppressWarnings("rawtypes") Vector notifications) {
+			//Response received/not received from all appliances
+			if (notifications.size() < nResponders) {
+				// Some responder didn't reply within the specified timeout
+				log("Timeout expired: missing "+(nResponders - notifications.size())+" responses");
+			} else {
+				log("Received all consumption respones.");
+			}
+			int quantity =  makeEnergyBalance();
+			log("Consumption: " + energyConsumed + " production: " + energyProducted + " --> BALANCE = " + quantity);
+			ACLMessage tradeRequest = createTradeRequest(quantity);
+			a.addBehaviour(new Negotiation(a,tradeRequest));
+		}
+		
+	} 
+	
+	private class Negotiation extends AchieveREInitiator{
+		private ACLMessage tR;
+		public Negotiation(Agent a, ACLMessage tRM) {
+			super(a, tRM);
+			tR = tRM;
+		}
+
+		protected void handleAgree(ACLMessage agree) {
+			log(agree.getSender().getLocalName() + " has agreed to the request");
+		}
+
+		// Method to handle an inform message from responder
+		protected void handleInform(ACLMessage inform) {
+			JSONObject response = new JSONObject(inform.getContent());
+			log(inform.getSender().getLocalName() + " successfully performed the request: '" + tR.getContent()
+			+ " negotiated price of: '" + response.getDouble("price") + " c/kWh'");
+		}
+
+		// Method to handle a refuse message from responder
+		protected void handleRefuse(ACLMessage refuse) {
+			log(refuse.getSender().getLocalName() + " refused to perform the requested action");
+		}
+
+		// Method to handle a failure message (failure in delivering the message)
+		protected void handleFailure(ACLMessage failure) {
+			if (failure.getSender().equals(myAgent.getAMS())) {
+				// FAILURE notification from the JADE runtime: the receiver (receiver does not exist)
+				log("Responder does not exist");
+			} else {
+				log(failure.getSender().getLocalName() + " failed to perform the requested action");
+			}
+		}
 	}
 
 	private ACLMessage createConsumptionRequest(AID[] receivers) {
