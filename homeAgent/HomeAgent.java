@@ -7,7 +7,11 @@ import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.proto.AchieveREInitiator;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
 import jade.domain.FIPANames;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -32,6 +36,12 @@ public class HomeAgent extends Agent {
 	private String BetterProvider = "";
 	private String transmissionAgentAddress= "";
 	private HashMap<String, Integer> applianceEnergyBalance = new HashMap<String, Integer>();
+
+	MessageTemplate energyBalanceMessageTemplate = MessageTemplate.and(
+			MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST),
+			MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
+
+
 	protected void setup() {
 		//FIPANames.InteractionProtocol.FIPA_REQUEST
 		Object[] args = getArguments();
@@ -45,9 +55,6 @@ public class HomeAgent extends Agent {
 			log("I have been created. DEFAULT maxBuyingPrice is "+ maxBuyingPrice +" and minSellingPrice is "+ minSellingPrice);
 		}
 
-		MessageTemplate energyBalanceMessageTemplate = MessageTemplate.and(
-				MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST),
-				MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
 
 
 		CyclicBehaviour energyBalanceReceivingBehaviour = (new CyclicBehaviour(this) {
@@ -68,12 +75,11 @@ public class HomeAgent extends Agent {
 				block();
 			}
 		}
-		);
-		addBehaviour(energyBalanceReceivingBehaviour);
+				);
 
-		 
-		addBehaviour(new TickerBehaviour(this,CYCLE_TIME) {
+		TickerBehaviour triggerEnergyBalance = (new TickerBehaviour(this,CYCLE_TIME) {
 			public void onTick() {
+				getAgentDescriptionList("Appliance");
 				log("Going to compute balance");
 				int quantity =  makeEnergyBalance();
 				log("Consumption: " + energyConsumed + " production: " + energyProducted + " --> BALANCE = " + quantity);
@@ -92,12 +98,12 @@ public class HomeAgent extends Agent {
 					protected void handleAgree(ACLMessage agree) {
 						log(agree.getSender().getLocalName() + " has agreed to the request");
 					}
-					
+
 					// Method to handle an inform message from responder
 					protected void handleInform(ACLMessage inform) {
 						JSONObject response = new JSONObject(inform.getContent());
-						log(inform.getSender().getLocalName() + " successfully performed the request: '" + requestToTransmissionAgent.getContent());
-						log(inform.getSender().getLocalName() + " negotiated price of: '" + response.getDouble("price") + " c/kWh'");
+						log(inform.getSender().getLocalName() + " successfully performed the request: '" + requestToTransmissionAgent.getContent()
+						+ " negotiated price of: '" + response.getDouble("price") + " c/kWh'");
 					}
 
 					// Method to handle a refuse message from responder
@@ -114,14 +120,16 @@ public class HomeAgent extends Agent {
 							log(failure.getSender().getLocalName() + " failed to perform the requested action");
 						}
 					}
-				
-				
 				});
-				
 			}
 		});
 
+
+		addBehaviour(energyBalanceReceivingBehaviour);
+
+		addBehaviour(triggerEnergyBalance);
 	}
+
 	private void setApplianceEnergyBalance(String applianceName, Integer balance) {
 		applianceEnergyBalance.put(applianceName, balance);
 	}
@@ -142,6 +150,31 @@ public class HomeAgent extends Agent {
 		energyBalance=energyConsumed + energyProducted;
 		return energyBalance;
 	}
+
+	private AID[] getAgentDescriptionList(String serviceType) {
+		// Search for appliance agents
+		DFAgentDescription dfd = new DFAgentDescription();
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType(serviceType);
+		dfd.addServices(sd);
+
+		// Create and print list of retail agents found
+		try {
+			DFAgentDescription[] result = DFService.search(this, dfd); 
+			log("Found the following" + serviceType + " agents:");
+			AID[] agentsFound = new AID[result.length];
+			for (int i = 0; i < result.length; ++i) {
+				agentsFound[i] = result[i].getName();
+				log(agentsFound[i].getLocalName());
+			}
+			return agentsFound;
+		}
+		catch (FIPAException fe) {
+			fe.printStackTrace();
+			return null;
+		}
+	}
+
 	private void storeApplianceEnergyBalance(String k,int v) {
 		//TODO IN A DBMS
 		Date date = new Date();
