@@ -32,7 +32,9 @@ public class RetailAgent extends Agent {
 	// Agent initialization
 	protected void setup() {
 		Object[] args = getArguments();
-		// Printout a welcome message
+		if (args == null || args.length == 0) {
+			throw new Error("Retailer AGent needs arguments!!!");
+		}		// Printout a welcome message
 		log("I have been created. Company: " + args[1].toString());
 
 		// Set the type of service and the company name as a start-up argument

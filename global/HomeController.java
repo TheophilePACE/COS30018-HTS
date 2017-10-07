@@ -33,10 +33,12 @@ public class HomeController {
 		log("The homeContainer was created!");
 		homeAgent =null;
 	} 
-	private AgentController makeCreateAppliance(String agentName, long cycleTime, String homeAgentAdress, ContainerController containerController) {
-		Object[] appArgs = new Object[2];
+	private AgentController makeCreateAppliance(String agentName, long cycleTime, String homeAgentAdress, ContainerController containerController, String serviceType, String serviceName) {
+		Object[] appArgs = new Object[4];
 		appArgs[0] = cycleTime;
 		appArgs[1] = homeAgentAdress;
+		appArgs[2] = serviceType;
+		appArgs[3] = serviceName;
 		try {
 			AgentController applianceCtrl = containerController.createNewAgent(agentName, ApplianceAgent.class.getName(), appArgs);
 			applianceCtrl.start();
@@ -47,7 +49,7 @@ public class HomeController {
 		}
 	}
 	public AgentController createAppliance(String agentName) {
-		return makeCreateAppliance(agentName, CYCLE_TIME, HOME_AGENT_ADDRESS, homeContainer);
+		return makeCreateAppliance(agentName, CYCLE_TIME, HOME_AGENT_ADDRESS, homeContainer, "Appliance", agentName);
 	}
 	private AgentController makeCreateHomeAgent(String name,int maxBuyPrice, int minSellPrice, long cycleTime, String transmissionAgentAdress) {
 		if(homeAgent == null) {
