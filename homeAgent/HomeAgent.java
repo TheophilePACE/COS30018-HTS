@@ -15,6 +15,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Vector;
 
 import org.json.*;
 
@@ -36,12 +37,13 @@ public class HomeAgent extends Agent {
 	private String BetterProvider = "";
 	private String transmissionAgentAddress= "";
 	private HashMap<String, Integer> applianceEnergyBalance = new HashMap<String, Integer>();
+	private AID[] applianceList;
 
 	MessageTemplate energyBalanceMessageTemplate = MessageTemplate.and(
 			MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST),
 			MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
 
-
+	private int nResponders =0;
 	protected void setup() {
 		//FIPANames.InteractionProtocol.FIPA_REQUEST
 		Object[] args = getArguments();
@@ -79,7 +81,38 @@ public class HomeAgent extends Agent {
 
 		TickerBehaviour triggerEnergyBalance = (new TickerBehaviour(this,CYCLE_TIME) {
 			public void onTick() {
-				getAgentDescriptionList("Appliance");
+				applianceList = getAgentDescriptionList("Appliance");
+				ACLMessage energyRequest = createConsumptionRequest(applianceList);
+				nResponders = applianceList.length;
+				addBehaviour(new AchieveREInitiator(myAgent, energyRequest) {
+					protected void handleInform(ACLMessage inform) {
+						log("Consumption INFORM :"+inform.getSender()+"-->"+inform.getContent());
+						nResponders--;
+					}
+					protected void handleRefuse(ACLMessage refuse) {
+						log("Consumption REFUSE :"+refuse.getSender()+"-->"+refuse.getContent());
+						nResponders--;
+					}
+					protected void handleFailure(ACLMessage failure) {
+						if (failure.getSender().equals(myAgent.getAMS())) {
+							// FAILURE notification from the JADE runtime: the receiver
+							// does not exist
+							System.out.println("Responder does not exist");
+						}
+						else {
+							System.out.println("Agent "+failure.getSender().getName()+" failed to perform the requested action");
+						}
+					}
+					protected void handleAllResultNotifications(@SuppressWarnings("rawtypes") Vector notifications) {
+						if (notifications.size() < nResponders) {
+							// Some responder didn't reply within the specified timeout
+							log("Timeout expired: missing "+(nResponders - notifications.size())+" responses");
+						} else {
+							log("ALL RESPONES RECEIVED");
+						}
+					}
+				} );
+
 				log("Going to compute balance");
 				int quantity =  makeEnergyBalance();
 				log("Consumption: " + energyConsumed + " production: " + energyProducted + " --> BALANCE = " + quantity);
@@ -128,6 +161,17 @@ public class HomeAgent extends Agent {
 		addBehaviour(energyBalanceReceivingBehaviour);
 
 		addBehaviour(triggerEnergyBalance);
+	}
+
+	private ACLMessage createConsumptionRequest(AID[] receivers) {
+		ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
+		for (int i = 0; i < receivers.length; ++i) {
+			msg.addReceiver(receivers[i]);
+		}
+		msg.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
+		msg.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
+		msg.setContent("{'request':'energyConsumption'}");
+		return msg;
 	}
 
 	private void setApplianceEnergyBalance(String applianceName, Integer balance) {
