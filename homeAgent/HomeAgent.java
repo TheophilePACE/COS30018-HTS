@@ -20,6 +20,8 @@ import org.json.*;
 
 public class HomeAgent extends Agent {
 	private long CYCLE_TIME;
+	private int time = 0 ; //from 0 to 23
+
 	//Internal variables
 	private int energyBalance = 0; //sum of production and consumption of energy
 	private int energyProducted = 0;
@@ -37,7 +39,6 @@ public class HomeAgent extends Agent {
 	private String transmissionAgentAddress= "";
 	private HashMap<String, Integer> applianceEnergyBalance = new HashMap<String, Integer>();
 	private AID[] applianceList;
-
 	MessageTemplate energyBalanceMessageTemplate = MessageTemplate.and(
 			MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST),
 			MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
@@ -57,13 +58,14 @@ public class HomeAgent extends Agent {
 
 		TickerBehaviour triggerEnergyBalance = (new TickerBehaviour(this,CYCLE_TIME) {
 			public void onTick() {
+				time = (time+1)%24; //one hour more
 				System.out.println();
-				log("<---------------- NEW CYCLE ----------------->");
+				log("<---------------- NEW CYCLE. Hour: "+ time +" ----------------->");
 				//Get all aplliances address
 				applianceList = getAgentDescriptionList("Appliance");
 				//MSG to all appliances asking for consumption
 				ACLMessage consumptionRequest = createConsumptionRequest(applianceList);
-				addBehaviour(new collectApplianceEnergyBalances(myAgent,consumptionRequest, applianceList.length));
+				addBehaviour(new collectApplianceEnergyBalances(myAgent,consumptionRequest, applianceList.length, time));
 			}
 		});
 		addBehaviour(triggerEnergyBalance);
@@ -72,10 +74,12 @@ public class HomeAgent extends Agent {
 	private class collectApplianceEnergyBalances extends AchieveREInitiator {
 		private int nResponders =0;
 		private Agent a;
-		public collectApplianceEnergyBalances(Agent ag, ACLMessage consumptionRequest, int nbAppliances) {
+		private int time ;
+		public collectApplianceEnergyBalances(Agent ag, ACLMessage consumptionRequest, int nbAppliances, int t) {
 			super(ag, consumptionRequest);
 			a= ag;
 			nResponders = nbAppliances;
+			time = t;
 		}
 		private ACLMessage createTradeRequest(int quantity) {
 			
@@ -87,7 +91,7 @@ public class HomeAgent extends Agent {
 			// Specify the reply deadline (10 seconds)
 			tradeRequest.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
 			// Set message content, if quantity >0 we need to buy otherwise sell
-			String contentJSON = "{'quantity':" + quantity + "}";
+			String contentJSON = "{'quantity':" + quantity + ",'time':"+time+"}";
 			tradeRequest.setContent(contentJSON);
 			return tradeRequest;
 		}
@@ -168,7 +172,7 @@ public class HomeAgent extends Agent {
 		}
 		msg.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
 		msg.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
-		msg.setContent("{'request':'energyConsumption'}");
+		msg.setContent("{'request':'energyConsumption','time':"+time+"}");
 		return msg;
 	}
 
