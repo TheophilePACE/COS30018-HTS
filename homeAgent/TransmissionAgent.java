@@ -108,10 +108,12 @@ public class TransmissionAgent  extends Agent {
 						});
 					}
 				}
-				block(); //waiting for a request from home
-				log("Waiting a request from homeAgent");
+				else {
+					block(); //waiting for a request from home
+				}
 			}
 		});
+		log("Waiting a request from homeAgent");
 	}
 
 
