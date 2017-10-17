@@ -1,8 +1,5 @@
 /** ----------------------------------------------------------------- */
 /**   Broker Agent                                                    */
-/**   Receives energy buy/sell request from initiator agent.          */
-/**   Forwards request as negotiation to available retail agents.     */
-/**   Accepts best proposal and informs initiator agent of result     */
 /** ----------------------------------------------------------------- */
 
 package brokerAgent;
@@ -13,6 +10,7 @@ import jade.core.behaviours.*;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.proto.AchieveREResponder;
+import jade.proto.ContractNetInitiator;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPANames;
@@ -22,16 +20,30 @@ import jade.domain.FIPAAgentManagement.NotUnderstoodException;
 import jade.domain.FIPAAgentManagement.RefuseException;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.Vector;
+
 import org.json.JSONObject;
 
-@SuppressWarnings("serial")
+@SuppressWarnings("serial") 
 public class BrokerAgent extends Agent {
-	private String requestContent;	// The entire request 
 	private String requestType;		// The type of request for the broker to perform (buy/sell)
 	private String brokeredDeal;	// The deal and price achieved by the broker agent
 	private int quantity;			// The number of units requested
 	private AID[] retailAgents; 	// The list of known retail agents
-	public Behaviour b;				// To store + suspend AchieveReResponder behaviour
+	
+	//Limits for dealing. NEED TO DETERMINE HOW THESE ARE SET / UPDATED
+	private int maxBuyingPrice = 20;
+	private int minSellingPrice = 10;
+	
+	// Variables for ContractNetInitiator
+	private AID bestRetailer; // The agent who provides the best offer 
+	private double bestPrice; // The best offered price
+	private int repliesCnt;  // The counter of replies from seller agents
+	private int round;	// The current round of negotiation
+	
+	public Behaviour b;		// To store + suspend/resume AchieveReResponder behaviour
 	
 	protected void setup() {
 		// Print creation messages
@@ -60,37 +72,212 @@ public class BrokerAgent extends Agent {
 			fe.printStackTrace();
 		}
 		
+		repliesCnt = retailAgents.length;
+		
 		// Message template to listen only for messages matching the correct interaction protocol and performative
 		MessageTemplate template = MessageTemplate.and(
 				MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST),
 				MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
-
 		
 		// Add the AchieveREResponder behaviour which implements the responder role in a FIPA_REQUEST interaction protocol
 		// The responder can either choose to agree to request or refuse request
 		addBehaviour(new AchieveREResponder(this, template) {
 			protected ACLMessage handleRequest(ACLMessage request) throws NotUnderstoodException, RefuseException {
 				log("Broker request received from: " + request.getSender().getLocalName() + ". Request is: '" + request.getContent() + "'");
+				brokeredDeal = null;
 				
 				// Refuse request if no retail agents are found
 				ACLMessage response = request.createReply();
 				if (retailAgents != null) {
 					response.setPerformative(ACLMessage.AGREE);
-					// Get entire request as both JSON object and string
-					JSONObject req = getRequestContent(request);
-					requestContent = request.getContent();
-					
+					// Get entire request as JSON object
+					JSONObject req = getRequestContent(request);	
 					// Parse values from JSON object
 					// Get request type value
 					requestType = req.getString("requestType");
 					// Get quantity value
 					quantity = req.getInt("quantity");
 					
-					// Perform the action
+					round = 1;
+					
+					// Perform ContractNetInitiator behaviour
 					// Get reference of this behaviour
-					// Remove it after adding request performer and re-add in request performer onEnd()
+					// Remove it after adding ContractNetInitiator and re-add in onEnd() method of ContractNetInitiator
 					b = this;
-					myAgent.addBehaviour(new RequestPerformer());
+					// Fill the CFP message
+					ACLMessage msg = new ACLMessage(ACLMessage.CFP);
+					for (int i = 0; i < retailAgents.length; ++i) {
+						msg.addReceiver(retailAgents[i]);
+					} 
+					msg.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
+					// We want to receive a reply in 5 secs
+					msg.setReplyByDate(new Date(System.currentTimeMillis() + 5000));
+					String contentJSON = "{'requestType':'" + requestType + "','quantity':" + quantity + ",'round':" + round + "}";
+					msg.setContent(contentJSON);
+					log("Sending price requests");
+					
+					 
+					myAgent.addBehaviour(new ContractNetInitiator(myAgent, msg) {
+						Vector refusals = new Vector();
+						
+						protected void handlePropose(ACLMessage propose, Vector v) {
+							log(propose.getSender().getLocalName() + " offered: " + propose.getContent());
+						}
+						
+						protected void handleRefuse(ACLMessage refuse) {
+							log(refuse.getSender().getLocalName() + " refused");
+							refusals.addElement(refuse.getSender());
+						}
+						
+						protected void handleFailure(ACLMessage failure) {
+							if (failure.getSender().equals(myAgent.getAMS())) {
+								// FAILURE notification from the JADE runtime: the receiver
+								// does not exist
+								log("Responder does not exist");
+							}
+							else {
+								log(failure.getSender().getLocalName() + " failed");
+							}
+							repliesCnt--;
+						}
+						
+						protected void handleAllResponses(Vector responses, Vector acceptances) {
+							if (responses.size() < repliesCnt) {
+								// Some responder didn't reply within the specified timeout
+								log("Timeout expired: missing "+ (repliesCnt - responses.size()) + " responses");
+							}
+							// Evaluate proposals.
+							bestPrice = -1;
+							bestRetailer = null;
+							
+							Enumeration e = responses.elements();
+							acceptances.clear();
+							ACLMessage accept = null;
+							
+							round++;
+							
+							for (int i = 0; i < refusals.size(); i++)
+							{
+								ACLMessage reoffer = new ACLMessage(ACLMessage.CFP);
+								reoffer.addReceiver((AID) refusals.get(i));
+								reoffer.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
+								// We want to receive a reply in 5 secs
+								reoffer.setReplyByDate(new Date(System.currentTimeMillis() + 5000));
+								String contentJSON = "{'requestType':'" + requestType + "','quantity':" + quantity + ",'round':" + round + "}";
+								reoffer.setContent(contentJSON);
+								acceptances.addElement(reoffer);
+								refusals.clear();
+							}
+							
+							if (requestType.equals("Buy"))
+							{
+								while (e.hasMoreElements()) {
+									ACLMessage msg = (ACLMessage) e.nextElement();
+									if (msg.getPerformative() == ACLMessage.PROPOSE) {
+										// This is an offer 
+										ACLMessage reply = msg.createReply();
+										reply.setPerformative(ACLMessage.CFP);
+										reply.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
+										// We want to receive a reply in 5 secs
+										reply.setReplyByDate(new Date(System.currentTimeMillis() + 5000));
+										String contentJSON = "{'requestType':'" + requestType + "','quantity':" + quantity + ",'round':" + round + "}";
+										reply.setContent(contentJSON);
+										acceptances.addElement(reply);
+										JSONObject offer = getRequestContent(msg);
+										double price = offer.getDouble("price");
+										// Hold on to best price and retailer based on whether buying/selling
+										if (bestRetailer == null || price < bestPrice) {
+											// This is the best offer at present
+											bestPrice = price;
+											bestRetailer = msg.getSender();
+											accept = reply;
+										}
+									}
+								}
+								
+								if (bestPrice <= maxBuyingPrice && bestRetailer != null)
+								{
+									log("Accepting proposal from "+ bestRetailer.getLocalName() + ". Offer is: '" + bestPrice + " c/kWh'");
+									accept.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+									acceptances.clear();
+									acceptances.addElement(accept);
+								}								
+								else
+								{
+									log("No proposals within target range of '<= " + maxBuyingPrice + "'Best proposal was " + bestPrice);
+									if (round < 4)
+									{
+										log("Sending reoffer requests");
+										newIteration(acceptances);
+									}
+									else
+									{
+										acceptances.clear();
+									}
+								}
+							}
+							else
+							{
+								while (e.hasMoreElements()) {
+									ACLMessage msg = (ACLMessage) e.nextElement();
+									if (msg.getPerformative() == ACLMessage.PROPOSE) {
+										// This is an offer 
+										ACLMessage reply = msg.createReply();
+										reply.setPerformative(ACLMessage.CFP);
+										reply.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
+										// We want to receive a reply in 5 secs
+										reply.setReplyByDate(new Date(System.currentTimeMillis() + 5000));
+										String contentJSON = "{'requestType':'" + requestType + "','quantity':" + quantity + ",'round':" + round + "}";
+										reply.setContent(contentJSON);
+										acceptances.addElement(reply);
+										JSONObject offer = getRequestContent(msg);
+										double price = offer.getDouble("price");
+										// Hold on to best price and retailer based on whether buying/selling
+										if (bestRetailer == null || price > bestPrice) {
+											// This is the best offer at present
+											bestPrice = price;
+											bestRetailer = msg.getSender();
+											accept = reply;
+										}
+									}
+								}
+								
+								if (bestPrice >= minSellingPrice && bestRetailer != null)
+								{
+									log("Accepting proposal " + bestPrice + " from retailer "+ bestRetailer.getLocalName());
+									accept.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+									acceptances.clear();
+									acceptances.addElement(accept);
+								}								
+								else
+								{
+									log("No proposals within target range of '>= " + minSellingPrice + "'. Best proposal was " + bestPrice);
+									if (round < 4)
+									{
+										log("Sending reoffer requests");
+										newIteration(acceptances);
+									}
+									else
+									{
+										acceptances.clear();
+									}
+								}
+							}						
+						}
+						
+						protected void handleInform(ACLMessage inform) {
+							log(inform.getSender().getLocalName() + " successfully carried out the order");
+							String contentJSON = "{'requestType':" + requestType + ", 'quantity':" + quantity + ", 'price':" + bestPrice + "}";
+							brokeredDeal = contentJSON;
+						}
+						
+						// Method to re add AchieveReResponder behaviour once ContractNet has finished
+						public int onEnd() {
+							myAgent.addBehaviour(b);
+							return 0;
+						}
+					} );
+					
 					myAgent.removeBehaviour(this);
 				}	
 				else {
@@ -104,7 +291,7 @@ public class BrokerAgent extends Agent {
 					throws FailureException {
 				// Inform the initiator of success or failure
 				if (brokeredDeal != null) {
-					log("Action successfully performed, informing initiator");
+					log("Informing " + request.getSender().getLocalName() + " of request success");
 					ACLMessage inform = request.createReply();
 					inform.setPerformative(ACLMessage.INFORM);
 					// Reply with the string received from Request Performer
@@ -112,7 +299,7 @@ public class BrokerAgent extends Agent {
 					return inform;
 				} else {
 					// Action failed
-					log("Action failed, informing initiator");
+					log("Negotiation failed. Informing " + request.getSender().getLocalName());
 					throw new FailureException("unexpected-error");
 				}
 			}
@@ -136,127 +323,4 @@ public class BrokerAgent extends Agent {
 		// Print termination message
 		log("Terminating.");
 	}
-
-	/**
-	   Inner class RequestPerformer.
-	   This is the behaviour used by broker agent to request retail
-	   agents a buy/sell price offer.
-	 */
-	private class RequestPerformer extends Behaviour {
-		private AID bestRetailer; // The agent who provides the best offer 
-		private double bestPrice;  // The best offered price
-		private int repliesCnt = 0; // The counter of replies from seller agents
-		private MessageTemplate mt; // The template to receive replies
-		private int step = 0;
-
-		public void action() {
-			switch (step) {
-			case 0:
-				// Send the cfp to all sellers
-				log("Sending price requests");
-				ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
-				for (int i = 0; i < retailAgents.length; ++i) {
-					cfp.addReceiver(retailAgents[i]);
-				} 
-				cfp.setContent(requestContent);
-				cfp.setConversationId(requestType + " energy");
-				cfp.setReplyWith("cfp"+System.currentTimeMillis()); // Unique value
-				myAgent.send(cfp);
-				// Prepare the template to get proposals
-				mt = MessageTemplate.and(MessageTemplate.MatchConversationId(requestType + " energy"),
-						MessageTemplate.MatchInReplyTo(cfp.getReplyWith()));
-				step = 1;
-				break;
-			case 1:
-				// Receive all proposals/refusals from seller agents
-				ACLMessage reply = myAgent.receive(mt);
-				if (reply != null) {
-					// Reply received
-					if (reply.getPerformative() == ACLMessage.PROPOSE) {
-						// This is an offer 
-						JSONObject offer = getRequestContent(reply);
-						double price = offer.getDouble("price");
-						// Hold on to best price and retailer based on whether buying/selling
-						if (requestType.equals("Buy")) {
-							if (bestRetailer == null || price < bestPrice) {
-								// This is the best offer at present
-								bestPrice = price;
-								bestRetailer = reply.getSender();
-							}
-						}
-						else {
-							if (bestRetailer == null || price > bestPrice) {
-								// This is the best offer at present
-								bestPrice = price;
-								bestRetailer = reply.getSender();
-							}
-						}
-					}
-					repliesCnt++;
-					if (repliesCnt >= retailAgents.length) {
-						// We received all replies
-						log("Received all proposals");
-						step = 2; 
-					}
-				}
-				else {
-					block();
-				}
-				break;
-			case 2:
-				// Send the final order to the retail agent that provided the best offer
-				log("Accepting proposal from: " + bestRetailer.getLocalName());
-				ACLMessage order = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
-				order.addReceiver(bestRetailer);
-				order.setContent(requestContent);
-				order.setConversationId(requestType + " energy");
-				order.setReplyWith("order"+System.currentTimeMillis());
-				myAgent.send(order);
-				// Prepare the template to get the purchase order reply
-				mt = MessageTemplate.and(MessageTemplate.MatchConversationId(requestType + " energy"),
-						MessageTemplate.MatchInReplyTo(order.getReplyWith()));
-				step = 3;
-				break;
-			case 3:      
-				// Receive the purchase order reply
-				reply = myAgent.receive(mt);
-				if (reply != null) {
-					// Purchase order reply received
-					if (reply.getPerformative() == ACLMessage.INFORM) {
-						// Purchase successful. We can inform initiator
-						if (requestType.equals("Buy"))
-							log("'" + requestContent + "' successfull. Purchased from: " + reply.getSender().getLocalName());
-
-						else
-							log("'" + requestContent + "' successfull. Sold to: " + reply.getSender().getLocalName());
-						
-						log("Price: '" + bestPrice + " c/kWh'");
-						String contentJSON = "{'requestType':" + requestType + ", 'quantity':" + quantity + ", 'price':" + bestPrice + "}";
-						brokeredDeal = contentJSON;
-					}
-					else {
-						log("Attempt failed.");
-					}
-					step = 4;
-				}
-				else {
-					block();
-				}
-				break;
-			}        
-		}
-		
-		// Method to re add AchieveReResponder behaviour once RequestPerforme has finished
-		public int onEnd() {
-			myAgent.addBehaviour(b);
-			return 0;
-		}
-
-		public boolean done() {
-			if (step == 2 && bestRetailer == null) {
-				log("Attempt failed. Retailers not found");
-			}
-			return ((step == 2 && bestRetailer == null) || step == 4);
-		}
-	}  // End of inner class RequestPerformer
 }
