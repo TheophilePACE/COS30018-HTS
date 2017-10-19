@@ -42,6 +42,8 @@ public class BrokerAgent extends Agent {
 	private double bestPrice; // The best offered price
 	private int repliesCnt;  // The counter of replies from seller agents
 	private int round;	// The current round of negotiation
+	private int roundLimit = 3; // The maximum no. of rounds of negotiation. ****THIS NEEDS TO BE SET VIA GUI OR SOMETHING****
+	private boolean end; // Represents negotiation round limit status
 	
 	public Behaviour b;		// To store + suspend/resume AchieveReResponder behaviour
 	
@@ -99,6 +101,7 @@ public class BrokerAgent extends Agent {
 					quantity = req.getInt("quantity");
 					
 					round = 1;
+					end = false;
 					
 					// Perform ContractNetInitiator behaviour
 					// Get reference of this behaviour
@@ -112,7 +115,7 @@ public class BrokerAgent extends Agent {
 					msg.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
 					// We want to receive a reply in 5 secs
 					msg.setReplyByDate(new Date(System.currentTimeMillis() + 5000));
-					String contentJSON = "{'requestType':'" + requestType + "','quantity':" + quantity + ",'round':" + round + "}";
+					String contentJSON = "{'requestType':'" + requestType + "','quantity':" + quantity + ",'round':" + round + ",'end':" + end +"}";
 					msg.setContent(contentJSON);
 					log("Sending price requests");
 					
@@ -155,6 +158,8 @@ public class BrokerAgent extends Agent {
 							ACLMessage accept = null;
 							
 							round++;
+							if (round == roundLimit)
+								end = true;
 							
 							for (int i = 0; i < refusals.size(); i++)
 							{
@@ -163,7 +168,7 @@ public class BrokerAgent extends Agent {
 								reoffer.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
 								// We want to receive a reply in 5 secs
 								reoffer.setReplyByDate(new Date(System.currentTimeMillis() + 5000));
-								String contentJSON = "{'requestType':'" + requestType + "','quantity':" + quantity + ",'round':" + round + "}";
+								String contentJSON = "{'requestType':'" + requestType + "','quantity':" + quantity + ",'round':" + round + ",'end':" + end +"}";
 								reoffer.setContent(contentJSON);
 								acceptances.addElement(reoffer);
 								refusals.clear();
@@ -205,7 +210,7 @@ public class BrokerAgent extends Agent {
 								else
 								{
 									log("No proposals within target range of '<= " + maxBuyingPrice + "'. Best proposal was " + bestPrice);
-									if (round < 4)
+									if (round <= roundLimit)
 									{
 										log("Sending reoffer requests");
 										newIteration(acceptances);
@@ -256,7 +261,7 @@ public class BrokerAgent extends Agent {
 								else
 								{
 									log("No proposals within target range of '>= " + minSellingPrice + "'. Best proposal was " + bestPrice);
-									if (round < 4)
+									if (round <= roundLimit)
 									{
 										log("Sending reoffer requests");
 										newIteration(acceptances);
