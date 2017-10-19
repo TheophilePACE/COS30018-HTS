@@ -204,7 +204,7 @@ public class BrokerAgent extends Agent {
 								}								
 								else
 								{
-									log("No proposals within target range of '<= " + maxBuyingPrice + "'Best proposal was " + bestPrice);
+									log("No proposals within target range of '<= " + maxBuyingPrice + "'. Best proposal was " + bestPrice);
 									if (round < 4)
 									{
 										log("Sending reoffer requests");
@@ -212,7 +212,11 @@ public class BrokerAgent extends Agent {
 									}
 									else
 									{
+										log("Round limit reached. Accepting best proposal from final round");
+										log("Accepting proposal " + bestPrice + " from retailer "+ bestRetailer.getLocalName());
+										accept.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
 										acceptances.clear();
+										acceptances.addElement(accept);
 									}
 								}
 							}
@@ -259,7 +263,11 @@ public class BrokerAgent extends Agent {
 									}
 									else
 									{
+										log("Round limit reached. Accepting best proposal from final round");
+										log("Accepting proposal " + bestPrice + " from retailer "+ bestRetailer.getLocalName());
+										accept.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
 										acceptances.clear();
+										acceptances.addElement(accept);
 									}
 								}
 							}						

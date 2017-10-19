@@ -35,16 +35,16 @@ public class GlobalController {
 			homeController.createTransmissionAgent();
 			homeController.createHomeAgent(30, 10);
 			homeController.createHomeAgent(30, 10); //This is an error but it should not crash, thanks to the controller
-			homeController.createAppliance("Appliance1");
-			homeController.createAppliance("Appliance2");
+			homeController.createAppliance("applianceAgent1");
+			homeController.createAppliance("applianceAgent2");
 		} catch (Exception e) {
 			log(e.toString());
 		}
 		
 		//Launch a broker and retailers
 		BrokerAgentController brokerAgentController = new BrokerAgentController(CYCLE_TIME, rt, HOST, PORT, BROKER_ADRESS);
-		brokerAgentController.createRetailerAgent("Retail Agent 1", "Retail Agent", "AGL");
-		brokerAgentController.createRetailerAgent("Retail Agent 2", "Retail Agent", "Origin");
+		brokerAgentController.createRetailerAgent("retailAgent1", "Retail Agent", "AGL");
+		brokerAgentController.createRetailerAgent("retailAgent2", "Retail Agent", "Origin");
 		brokerAgentController.createBrokerAgent();
 //		brokerAgentController.createInitiatorAgent("Initiator Agent");
 	}

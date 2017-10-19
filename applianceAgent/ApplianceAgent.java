@@ -57,11 +57,11 @@ public class ApplianceAgent extends Agent {
 		addBehaviour(new AchieveREResponder(this, energyBalanceMessageTemplate) {				
 			@Override
 			protected ACLMessage handleRequest(ACLMessage request) throws NotUnderstoodException, RefuseException {
-				System.out.println("Agent "+getLocalName()+": REQUEST received from "+request.getSender().getName()+". Action is "+request.getContent());
+				log("Request received from "+request.getSender().getLocalName()+". Request is "+request.getContent());
 				// We agree to perform the action. Note that in the FIPA-Request
 				// protocol the AGREE message is optional. Return null if you
 				// don't want to send it.
-				System.out.println("Agent "+getLocalName()+": Agree");
+				log("Sending consumption data");
 				ACLMessage consumptionMessageResponse = request.createReply();
 				consumptionMessageResponse.setPerformative(ACLMessage.INFORM);
 				String contentJSON = "{'consumption':" + getComsumption() +",unit:'kWh'}";
@@ -70,13 +70,13 @@ public class ApplianceAgent extends Agent {
 			}
 
 			protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response) throws FailureException {
-				System.out.println("Agent "+getLocalName()+": Action successfully performed");
+				log("Action successfully performed");
 				ACLMessage inform = request.createReply();
 				inform.setPerformative(ACLMessage.INFORM);
 				return inform;
 			}
 		});
-		log("I have added my behaviours");
+		log("Waiting for consumption requests...");
 	}
 	
 
