@@ -1,8 +1,8 @@
 /* ----------------------------------------------------------------- */
 /*   Appliance Agent                                                 */
 /*   Takes tick rate and ResponderAgent name as input args, sends    */
-/*   random energy usage request to ResponderAgent each tick that    */
-/*   is between 1 - 10 kWh                                           */
+/*   energy usage request to ResponderAgent each tick based on its   */
+/*   appliance type and yearly consumption pattern 					 */
 /* ----------------------------------------------------------------- */
 
 package applianceAgent;
@@ -21,11 +21,32 @@ import jade.domain.FIPAAgentManagement.NotUnderstoodException;
 import jade.domain.FIPAAgentManagement.RefuseException;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 
+import java.io.FileReader;
+import java.util.Map;
+
+import org.supercsv.cellprocessor.*;
+import org.supercsv.cellprocessor.ift.*;
+import org.supercsv.io.*;
+import org.supercsv.prefs.*;
 //import org.json.*;
 
 public class ApplianceAgent extends Agent {
-	private int getComsumption() {
-		return (int) Math.ceil(Math.random() * 10); 
+	
+	//To do: needs input about yearly consumption, and ratio of base vs. fluctuating load from GUI SETTINGS && info about time step from home agent
+	private double getConsumption() {
+		double ratio = 0.5; //dummy value
+		double yearly_consumption = 4000; //dummy value
+		int timestep = 23; //dummy value
+		double [] consumption_pattern = null; //initialize consumption array
+		
+		try {
+			consumption_pattern = readCSVData("base_load"); //dummy value 
+		} catch (Exception e) {
+			System.out.println("CSV read in unsuccessful");
+			e.printStackTrace();
+		}
+		double consumption_hourly = consumption_pattern[timestep] * ratio * yearly_consumption;
+		return consumption_hourly; 
 	}
 	private long CYCLE_TIME;
 	private String HOME_AGENT_ADDRESS;
@@ -43,7 +64,7 @@ public class ApplianceAgent extends Agent {
 		HOME_AGENT_ADDRESS = args[1].toString();
 		serviceType = args[2].toString();
 		serviceName = args[3].toString();
-
+		
 		registerService(serviceType, serviceName);
 		log("created: "+serviceName+" -> "+serviceName);
 
@@ -64,7 +85,7 @@ public class ApplianceAgent extends Agent {
 				log("Sending consumption data");
 				ACLMessage consumptionMessageResponse = request.createReply();
 				consumptionMessageResponse.setPerformative(ACLMessage.INFORM);
-				String contentJSON = "{'consumption':" + getComsumption() +",unit:'kWh'}";
+				String contentJSON = "{'consumption':" + getConsumption() +",unit:'kWh'}";
 				consumptionMessageResponse.setContent(contentJSON); //TODO REFACTOR OUT OF BEHAVIOUR
 				return consumptionMessageResponse;
 			}
@@ -105,4 +126,41 @@ public class ApplianceAgent extends Agent {
 		System.out.println(toPrint);
 		return toPrint;
 	}
+	//Method to retrieve consumption data from CSV file
+	private static double [] readCSVData(String target) throws Exception{
+		final String CSV_FILENAME = "C:\\Users\\Victor\\Desktop\\Daten\\01_Masterstudium_TUM\\04_Swinburne\\02_Intelligent Systems\\COS30018_Group Assignment\\src\\cos30018\\applianceAgent\\Total_Data.csv"; //change to new path
+		double [] data = new double [168];
+		ICsvMapReader mapReader = null;
+		try {
+			mapReader = new CsvMapReader(new FileReader(CSV_FILENAME), CsvPreference.STANDARD_PREFERENCE);
+
+			final String[] header = mapReader.getHeader(true); 
+			final CellProcessor[] processors = getProcessors();
+
+			Map<String, Object> customerMap;
+			int i = 0;
+			while( (customerMap = mapReader.read(header, processors)) != null ) {
+				data[i] = (double) customerMap.get(target);
+				i++;
+				//				System.out.println(customerMap.get("rel_fluctuating load"));
+			}
+		}
+		finally {
+			if( mapReader != null ) {
+				mapReader.close();
+			}
+		}	
+		return data;
+	}
+	// Method to define cell data type
+	private static CellProcessor [] getProcessors() {
+
+		final CellProcessor[] processors = new CellProcessor [] {
+				new ParseInt(),//hourly time step
+				new ParseDouble(),//relative baseload energy consumption
+				new ParseDouble(),//relative fluctuating energy consumption
+				new ParseDouble() //relative PV production
+		};
+		return processors;
+	}	
 }

@@ -21,15 +21,30 @@ import org.json.JSONObject;
 @SuppressWarnings("serial")
 public class RetailAgent extends Agent {
 	// The current price for electricity
-	private double getBuyPrice() {
-		return Math.ceil((Math.random() * 6) + 5); // 5 - 11
+	private double getBuyPrice(int negotiationRound) {
+		double offer = 11.3; // equals to the current Feed in tariff in Victoria as of 2017
+		offer = 11.3 + (Math.sin((10*Math.random())*(double)negotiationRound)+(double)negotiationRound/2);
+		return offer;
 	}
-	private double getSellPrice() {
-		return Math.ceil((Math.random() * 10) + 20); // 20 - 30
+	private double getSellPrice(int negotiationRound) {
+		double offer;
+		boolean successfulNegotiation = false; //TO DO: pass retail agent info if he was successfull last round
+		if (successfulNegotiation == true)
+		{
+			offer = initialOffer + 3*Math.sin(initialOffer*Math.random()*negotiationRound)-Math.sqrt(negotiationRound*2); //neutral conceder utility function
+		}
+		else
+		{
+			offer = Math.exp(1.05*Math.random()-(negotiationRound/30)*Math.log(initialOffer-7))+7; //aggressive conceder utility function
+		}
+		return offer;
 	}
+
 	private double currentOffer = 0;
+	private double initialOffer;
 	private String requestType;
 	private int round;
+	private boolean end; // Represents negotiation round limit status
 
 	// Agent initialization
 	protected void setup() {
@@ -44,6 +59,9 @@ public class RetailAgent extends Agent {
 		sd.setType( args[0].toString());
 		sd.setName( args[1].toString());
 		register(sd);
+
+		// Sets the initial offer price
+		initialOffer = Double.parseDouble(args[2].toString()); 
 
 		// Create message template
 		MessageTemplate template = MessageTemplate.and(
@@ -61,6 +79,7 @@ public class RetailAgent extends Agent {
 						requestType = req.getString("requestType");
 						round = req.getInt("round");
 						
+						end = req.getBoolean("end");
 						if (checkAction())
 						{
 							switch (round) {
@@ -69,66 +88,54 @@ public class RetailAgent extends Agent {
 								
 								// Reply with the price offer based on request type
 								if (requestType.equals("Buy")) // The broker wants to buy
-									currentOffer = getSellPrice();
+									currentOffer = initialOffer;
 								else // The broker wants to sell
-									currentOffer = getBuyPrice();
+									currentOffer = getBuyPrice(round);
 								break;
-							case 2:																
+							default:														
 								if (requestType.equals("Buy"))
 								{
-									if (currentOffer == 0)
+									if (end == false)
 									{
-										log("We have yet to provide an offer. Current round is: " + round);
-										currentOffer = getSellPrice();
-									}										
-									else
+										if (currentOffer == 0)
+										{
+											log("We have yet to provide an offer. Current round is: " + round);
+											currentOffer = getSellPrice(round);
+										}										
+										else
+										{
+											currentOffer = getSellPrice(round);
+											log(cfp.getSender().getLocalName() + " wants a better offer. Current round is: " + round + ". Current offer is: " + currentOffer);
+										}										
+									}
+									else 
 									{
-										log(cfp.getSender().getLocalName() + " wants a better offer. Current round is: " + round + ". Current offer is: " + currentOffer);
-										currentOffer = round(currentOffer * 0.9, 1);
-									}										
-								}
-								else
-								{
-									if (currentOffer == 0)
-									{
-										log("We have yet to provide an offer. Current round is: " + round);
-										currentOffer = getBuyPrice();
-									}										
-									else
-									{
-										log(cfp.getSender().getLocalName() + " wants a better offer. Current round is: " + round + ". Current offer is: " + currentOffer);
-										currentOffer = round(currentOffer * 1.05, 1);
-									}									
-								}
-								break; 
-							case 3:
-								if (requestType.equals("Buy"))
-								{
-									if (currentOffer == 0)
-									{
-										log("We have yet to provide an offer. Current round is: " + round);
-										currentOffer = getSellPrice();
-									}										
-									else
-									{
-										log(cfp.getSender().getLocalName() + " wants a better offer. Current round is: " + round + ". Current offer is: " + currentOffer);
-										currentOffer = round(currentOffer * 0.95, 1);
+										currentOffer = initialOffer;
 									}
 								}
 								else
 								{
-									if (currentOffer == 0)
+									if (end == false)
 									{
-										log("We have yet to provide an initial offer. Current round is: " + round);
-										currentOffer = getBuyPrice();
-									}										
+										if (currentOffer == 0)
+										{
+											log("We have yet to provide an offer. Current round is: " + round);
+											currentOffer = getBuyPrice(round);
+										}										
+										else
+										{
+											currentOffer = getBuyPrice(round);
+											log(cfp.getSender().getLocalName() + " wants a better offer. Current round is: " + round + ". Current offer is: " + currentOffer);
+	
+										}
+									}
 									else
 									{
-										log(cfp.getSender().getLocalName() + " wants a better offer. Current round is: " + round + ". Current offer is: " + currentOffer);
-										currentOffer = round(currentOffer * 1.04, 1);
+										currentOffer = getBuyPrice(0);
 									}
 								}
 								break; 
+
 							}
 							
 							log("Offering price: '" + currentOffer + " c/kWh'");
@@ -200,22 +207,17 @@ public class RetailAgent extends Agent {
 			log("Error at service de-registration of Agent " + getLocalName() );
 		}
 	}
-	
+
 	private JSONObject getRequestContent(ACLMessage request) {
 		return new JSONObject(request.getContent());
 	}
-	
+
 	private String log(String s) {
 		String toPrint = "[" + getLocalName() + "] " + s;
 		System.out.println(toPrint);
 		return toPrint;
 	}
-	
-	private static double round (double value, int precision) {
-	    int scale = (int) Math.pow(10, precision);
-	    return (double) Math.round(value * scale) / scale;
-	}
-	
+
 	//Method to check if requested action should be continued
 	// 10% chance to fail at this stage
 	private boolean checkAction() {

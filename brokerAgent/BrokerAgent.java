@@ -34,15 +34,15 @@ public class BrokerAgent extends Agent {
 	private AID[] retailAgents; 	// The list of known retail agents
 	
 	//Limits for dealing. NEED TO DETERMINE HOW THESE ARE SET / UPDATED
-	private int maxBuyingPrice = 20;
-	private int minSellingPrice = 10;
+	private int maxBuyingPrice = 6;
+	private int minSellingPrice = 20;
 	
 	// Variables for ContractNetInitiator
 	private AID bestRetailer; // The agent who provides the best offer 
 	private double bestPrice; // The best offered price
 	private int repliesCnt;  // The counter of replies from seller agents
 	private int round;	// The current round of negotiation
-	private int roundLimit = 3; // The maximum no. of rounds of negotiation. ****THIS NEEDS TO BE SET VIA GUI OR SOMETHING****
+	private int roundLimit = 31; // The maximum no. of rounds of negotiation. ****THIS NEEDS TO BE SET VIA GUI OR SOMETHING****
 	private boolean end; // Represents negotiation round limit status
 	
 	public Behaviour b;		// To store + suspend/resume AchieveReResponder behaviour
@@ -185,7 +185,7 @@ public class BrokerAgent extends Agent {
 										reply.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
 										// We want to receive a reply in 5 secs
 										reply.setReplyByDate(new Date(System.currentTimeMillis() + 5000));
-										String contentJSON = "{'requestType':'" + requestType + "','quantity':" + quantity + ",'round':" + round + "}";
+										String contentJSON = "{'requestType':'" + requestType + "','quantity':" + quantity + ",'round':" + round + ",'end':" + end + "}";
 										reply.setContent(contentJSON);
 										acceptances.addElement(reply);
 										JSONObject offer = getRequestContent(msg);
@@ -236,7 +236,7 @@ public class BrokerAgent extends Agent {
 										reply.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
 										// We want to receive a reply in 5 secs
 										reply.setReplyByDate(new Date(System.currentTimeMillis() + 5000));
-										String contentJSON = "{'requestType':'" + requestType + "','quantity':" + quantity + ",'round':" + round + "}";
+										String contentJSON = "{'requestType':'" + requestType + "','quantity':" + quantity + ",'round':" + round + ",'end':" + end + "}";
 										reply.setContent(contentJSON);
 										acceptances.addElement(reply);
 										JSONObject offer = getRequestContent(msg);

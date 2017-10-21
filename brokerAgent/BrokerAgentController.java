@@ -85,13 +85,15 @@ public class BrokerAgentController {
 		}
 	}
 	
-	private AgentController makeCreateRetailerAgent(String name,String service,String companyName, ContainerController cc) {
+	private AgentController makeCreateRetailerAgent(String name,String service,String companyName, String initialOffer, ContainerController cc) {
 		// Start Retail Agents
 		// Args[0] determines service type name
 		// Args[1] determines service company name
-		Object[] retailArgs0 = new Object[2];
+		// Args[2] determines service initial offer price
+		Object[] retailArgs0 = new Object[3];
 		retailArgs0[0] = service;
 		retailArgs0[1] = companyName;
+		retailArgs0[2] = initialOffer;
 		AgentController retailCtrl0;
 		try {
 			retailCtrl0 = cc.createNewAgent(name, RetailAgent.class.getName(), retailArgs0);
@@ -103,8 +105,8 @@ public class BrokerAgentController {
 		}
 	}
 
-	public AgentController createRetailerAgent(String agentName, String service,String companyName) {
-		return makeCreateRetailerAgent(agentName, service, companyName, retailersContainer);
+	public AgentController createRetailerAgent(String agentName, String service,String companyName, String initialOffer) {
+		return makeCreateRetailerAgent(agentName, service, companyName, initialOffer, retailersContainer);
 	}
 	public static void main(String[] args) throws StaleProxyException, InterruptedException {
 		
