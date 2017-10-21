@@ -20,8 +20,7 @@ import org.json.*;
 
 public class HomeAgent extends Agent {
 	private long CYCLE_TIME;
-	private int time = 0 ; //from 0 to 23
-
+	private long time = 0 ;
 	//Internal variables
 	private int energyBalance = 0; //sum of production and consumption of energy
 	private int energyProducted = 0;
@@ -58,7 +57,7 @@ public class HomeAgent extends Agent {
 
 		TickerBehaviour triggerEnergyBalance = (new TickerBehaviour(this,CYCLE_TIME) {
 			public void onTick() {
-				time = (time+1)%24; //one hour more
+				time++; //one hour more
 				System.out.println();
 				log("<---------------- NEW CYCLE. Hour: "+ time +" ----------------->");
 				//Get all aplliances address
@@ -74,12 +73,12 @@ public class HomeAgent extends Agent {
 	private class collectApplianceEnergyBalances extends AchieveREInitiator {
 		private int nResponders =0;
 		private Agent a;
-		private int time ;
-		public collectApplianceEnergyBalances(Agent ag, ACLMessage consumptionRequest, int nbAppliances, int t) {
+		private long time ;
+		public collectApplianceEnergyBalances(Agent ag, ACLMessage consumptionRequest, int nbAppliances, long time2) {
 			super(ag, consumptionRequest);
 			a= ag;
 			nResponders = nbAppliances;
-			time = t;
+			time = time2;
 		}
 		private ACLMessage createTradeRequest(int quantity) {
 			

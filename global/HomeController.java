@@ -5,12 +5,14 @@
 package global;
 
 import jade.core.Runtime;
-import applianceAgent.ApplianceAgent;
-import homeAgent.HomeAgent;
-import homeAgent.TransmissionAgent;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.wrapper.*;
+
+
+import applianceAgent.ApplianceAgent;
+import homeAgent.HomeAgent;
+import homeAgent.TransmissionAgent;
 
 public class HomeController {
 	private String HOME_AGENT_ADDRESS;
