@@ -1,17 +1,17 @@
-/* ----------------------------------------------------------------- */
-/*          Run for Generator / Responder demonstration              */
-/* ----------------------------------------------------------------- */
+/* ------------------------------------------------------------------- */
+/*    Run GenerationAgentController for Generation / Responder demo    */
+/* ------------------------------------------------------------------- */
 
 package generationAgent;
 
 import jade.core.Runtime;
-import applianceAgent.ApplianceAgent;
-import applianceAgent.ApplianceResponderAgent;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.wrapper.*;
 
 public class GenerationAgentController {
+	private static String HOME_AGENT_ADDRESS = "homeAgent";
+	private static long CYCLE_TIME = 10000;
 	public static void main(String[] args) throws StaleProxyException, InterruptedException {
 		
 		// Get a hold to the JADE runtime
@@ -23,17 +23,13 @@ public class GenerationAgentController {
 		pMain.setParameter(Profile.GUI, "true");
 		ContainerController mainCtrl = rt.createMainContainer(pMain);
 		
-		// Start GenerationResponder agent
-		AgentController responderCtrl = mainCtrl.createNewAgent("Responder", GenerationResponderAgent.class.getName(), new Object[0]);
-		responderCtrl.start();
-		
 		// Start Generation Agent
 		// appArgs[0] determines energy msg tick rate of GenerationAgent
 		// appArgs[1] determines energy msg receiver
-		Object[] genArgs = new Object[2];
-		genArgs[0] = (long)10000;
-		genArgs[1] = "Responder";
-		AgentController applianceCtrl = mainCtrl.createNewAgent("Generator", GenerationAgent.class.getName(), genArgs);
-		applianceCtrl.start();
+		Object[] appArgs = new Object[2];
+		appArgs[0] = CYCLE_TIME;
+		appArgs[1] = HOME_AGENT_ADDRESS;
+		AgentController generationCtrl = mainCtrl.createNewAgent("Generator", GenerationAgent.class.getName(), appArgs);
+		generationCtrl.start();
 	}
 }

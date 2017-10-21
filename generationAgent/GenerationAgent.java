@@ -1,11 +1,11 @@
-/* ----------------------------------------------------------------- */
-/*   Appliance Agent                                                 */
-/*   Takes tick rate and ResponderAgent name as input args, sends    */
-/*   random energy usage request to ResponderAgent each tick that    */
-/*   is between 1 - 10 kWh                                           */
-/* ----------------------------------------------------------------- */
+/*
+* GENERATION AGENT                                                
+* Generates a consistent amount of energy in kwH and returns      
+* accrued energy when asked.   
+* TODO: Home agent association                                      
+**/
 
-package generationAgent;
+package cos30018.assignment;
 
 import jade.core.Agent;
 import jade.core.behaviours.TickerBehaviour;
@@ -15,13 +15,12 @@ import jade.proto.AchieveREInitiator;
 import jade.domain.FIPANames;
 import java.util.Date;
 
-@SuppressWarnings("serial")
 public class GenerationAgent extends Agent {
 	protected void setup() {
 		Object[] args = getArguments();
 		
 		if (args != null && args.length > 0) {
-			System.out.println(getLocalName() + ": generation agent has been created.");
+			System.out.println(getLocalName() + ", generation agent has been created.");
 			
 			// Add Ticker behaviour, rate is input arg
 			addBehaviour(new TickerBehaviour(this, (long)args[0]) {				
@@ -53,23 +52,15 @@ public class GenerationAgent extends Agent {
 						}
 						
 						// Method to handle an inform message from responder
-						/*protected void handleInform(ACLMessage inform) {
+						protected void handleInform(ACLMessage inform) {
 							System.out.println(getLocalName() + ": " + inform.getSender().getName() + " successfully sent generated energy");
 							System.out.println(getLocalName() + ": " + inform.getSender().getName() + " sent " + inform.getContent() + "kWh");
 							System.out.println(getLocalName() + ": subtracted " + inform.getContent() + "kWh locally");
-						}*/
-						
-						protected void handleInform(ACLMessage inform) {
-							System.out.println(getLocalName() + ": " + inform.getSender().getName() + " successfully received generated energy");
-							System.out.println(getLocalName() + ": " + inform.getSender().getName() + " received " + inform.getContent() + "kWh");
-							
-							// TO IMPLEMENT
-							//System.out.println(getLocalName() + ": subtracted " + inform.getContent() + "kWh locally");
 						}
 
 						// Method to handle a refuse message from responder
 						protected void handleRefuse(ACLMessage refuse) {
-							System.out.println(getLocalName() + ": " + refuse.getSender().getName() + " refused request. Energy not subtracted locally");
+							System.out.println(getLocalName() + ": " + refuse.getSender().getName() + " refused energy. Energy not subtracted locally");
 						}
 
 						// Method to handle a failure message (failure in delivering the message)
@@ -78,7 +69,7 @@ public class GenerationAgent extends Agent {
 								// FAILURE notification from the JADE runtime: the receiver (receiver does not exist)
 								System.out.println(getLocalName() + ": " + "Responder does not exist");
 							} else {
-								System.out.println(getLocalName() + ": " + failure.getSender().getName() + " failed to perform the requested action. Energy not subtracted locally");
+								System.out.println(getLocalName() + ": " + failure.getSender().getName() + " failed to perform the requested action");
 							}
 						}
 					});
