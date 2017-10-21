@@ -9,16 +9,16 @@ import apiWrapper.HttpClient;
 import java.io.*;
 
 import jade.core.Runtime;
+import jade.tools.applet.JADEAppletRequestProto;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.wrapper.*;
 
-import homeAgent.HomeAgentController;
 import brokerAgent.BrokerAgentController;
 
 public class GlobalController {
 	private static String HOME_AGENT_ADDRESS = "homeAgent";
-	private static long CYCLE_TIME = 20000;
+	private static int CYCLE_TIME = 20000;
 	private static int PORT = 1099;
 	private static String HOST = null;
 	private static String BROKER_ADRESS = "brokerAgent";
@@ -40,8 +40,8 @@ public class GlobalController {
 		String settings =  getSettings();
 		System.out.println("SETTINGS : "+settings);
 		JSONObject jsonSettings = new JSONObject(settings);
-		System.out.println(jsonSettings.get("CYCLE_TIME"));
-		System.out.println(jsonSettings.get("JADE_PORT"));
+		CYCLE_TIME= (int) (jsonSettings.get("CYCLE_TIME"));
+		PORT = (int) (jsonSettings.get("JADE_PORT"));
 		// Get a hold to the JADE runtime
 		Runtime rt = Runtime.instance();
 
@@ -56,8 +56,8 @@ public class GlobalController {
 		HomeController homeController = new HomeController(HOME_AGENT_ADDRESS,CYCLE_TIME,rt,HOST,PORT,TRANSMISSION_AGENT_ADDRESS,BROKER_ADRESS);
 		try {
 			homeController.createTransmissionAgent();
-			homeController.createHomeAgent(30, 10);
-			homeController.createHomeAgent(30, 10); //This is an error but it should not crash, thanks to the controller
+			homeController.createHomeAgent(API_URL);
+			homeController.createHomeAgent(API_URL); //This is an error but it should not crash, thanks to the controller
 			homeController.createAppliance("Appliance1");
 			homeController.createAppliance("Appliance2");
 		} catch (Exception e) {
@@ -75,7 +75,7 @@ public class GlobalController {
 		
 	}
 	private static String log(String s) {
-		String toPrint = "[" + HomeAgentController.class.getName() + "] " + s;
+		String toPrint = "[" + HomeController.class.getName() + "] " + s;
 		System.out.println(toPrint);
 		return toPrint;
 	}

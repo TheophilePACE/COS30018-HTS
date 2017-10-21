@@ -53,14 +53,13 @@ public class HomeController {
 	public AgentController createAppliance(String agentName) {
 		return makeCreateAppliance(agentName, CYCLE_TIME, HOME_AGENT_ADDRESS, homeContainer, "Appliance", agentName);
 	}
-	private AgentController makeCreateHomeAgent(String name,int maxBuyPrice, int minSellPrice, long cycleTime, String transmissionAgentAdress) {
+	private AgentController makeCreateHomeAgent(String name,String API_URL, long cycleTime, String transmissionAgentAdress) {
 		if(homeAgent == null) {
 			try {
-				Object[] homeArgs = new Object[4];
-				homeArgs[0] = maxBuyPrice; //maxBuyPrice
-				homeArgs[1] = minSellPrice; //minSellPrice
-				homeArgs[2] = cycleTime;
-				homeArgs[3] = transmissionAgentAdress;
+				Object[] homeArgs = new Object[3];
+				homeArgs[0] = API_URL; //maxBuyPrice
+				homeArgs[1] = cycleTime;
+				homeArgs[2] = transmissionAgentAdress;
 				
 				log("Creating agent Home ");
 				homeAgent = homeContainer.createNewAgent(name, HomeAgent.class.getName(), homeArgs);
@@ -73,8 +72,8 @@ public class HomeController {
 		}
 		return homeAgent;
 	}
-	public AgentController createHomeAgent(int maxBuyPrice, int minSellPrice) {
-		return makeCreateHomeAgent(HOME_AGENT_ADDRESS, maxBuyPrice,minSellPrice,CYCLE_TIME, TRANSMISSION_AGENT_ADDRESS);
+	public AgentController createHomeAgent(String API_URL) {
+		return makeCreateHomeAgent(HOME_AGENT_ADDRESS, API_URL,CYCLE_TIME, TRANSMISSION_AGENT_ADDRESS);
 	}
 
 	private AgentController makeCreateTransmissionAgent(String name, String brokerAdress) {
