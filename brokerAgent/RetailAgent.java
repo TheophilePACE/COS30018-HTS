@@ -28,14 +28,13 @@ public class RetailAgent extends Agent {
 	}
 	private double getSellPrice(int negotiationRound) {
 		double offer;
-		boolean successfulNegotiation = false; //TO DO: pass retail agent info if he was successfull last round
-		if (successfulNegotiation == true)
+		if (negotiationStrategy == 0)
 		{
 			offer = initialOffer + 3*Math.sin(initialOffer*Math.random()*negotiationRound)-Math.sqrt(negotiationRound*2); //neutral conceder utility function
 		}
 		else
 		{
-			offer = Math.exp(1.05*Math.random()-(negotiationRound/30)*Math.log(initialOffer-7))+7; //aggressive conceder utility function
+			offer = Math.exp(1.05*Math.random()-(negotiationRound/30)*Math.log(initialOffer-7))+7; //aggressive conceder utility function with a price limit at 7 c/kWh
 		}
 		return offer;
 	}
@@ -45,6 +44,9 @@ public class RetailAgent extends Agent {
 	private String requestType;
 	private int round;
 	private boolean end; // Represents negotiation round limit status
+	private int negotiationStrategy = 0; // states if agent was successful in last negotiation round
+	private int currentStrategy;
+	private boolean successfulNegotiation = false; //states if agent has won last round of negotiations
 
 	// Agent initialization
 	protected void setup() {
@@ -67,7 +69,7 @@ public class RetailAgent extends Agent {
 		MessageTemplate template = MessageTemplate.and(
 				MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET),
 				MessageTemplate.MatchPerformative(ACLMessage.CFP) );
-		
+
 		addBehaviour(new SSResponderDispatcher(this, template) {
 			@Override
 			protected Behaviour createResponder(ACLMessage initiationMsg) {
@@ -78,19 +80,30 @@ public class RetailAgent extends Agent {
 						JSONObject req = getRequestContent(cfp);
 						requestType = req.getString("requestType");
 						round = req.getInt("round");
-						
 						end = req.getBoolean("end");
+
+						if(round == 1) {
+							if (checkStrategy()) 
+								negotiationStrategy = 0;
+							else
+								negotiationStrategy = 1;
+						}else
+						{
+							negotiationStrategy = currentStrategy;
+						}
+
 						if (checkAction())
 						{
 							switch (round) {
 							case 1:
 								log("Price request received from " + cfp.getSender().getLocalName() + ". Request is " + cfp.getContent());		
-								
+
 								// Reply with the price offer based on request type
 								if (requestType.equals("Buy")) // The broker wants to buy
 									currentOffer = initialOffer;
 								else // The broker wants to sell
 									currentOffer = getBuyPrice(round);
+								currentStrategy = negotiationStrategy;
 								break;
 							default:														
 								if (requestType.equals("Buy"))
@@ -126,7 +139,7 @@ public class RetailAgent extends Agent {
 										{
 											currentOffer = getBuyPrice(round);
 											log(cfp.getSender().getLocalName() + " wants a better offer. Current round is: " + round + ". Current offer is: " + currentOffer);
-	
+
 										}
 									}
 									else
@@ -134,10 +147,11 @@ public class RetailAgent extends Agent {
 										currentOffer = getBuyPrice(0);
 									}
 								}
+
 								break; 
 
 							}
-							
+
 							log("Offering price: '" + currentOffer + " c/kWh'");
 							String contentJSON = "{'price':" + currentOffer + "}";
 							ACLMessage propose = cfp.createReply();
@@ -149,6 +163,7 @@ public class RetailAgent extends Agent {
 						{
 							// We refuse to provide a proposal
 							log("Cannot provide an offer at this time");
+							currentStrategy = negotiationStrategy;
 							throw new RefuseException("evaluation-failed");
 						}
 					}
@@ -164,22 +179,22 @@ public class RetailAgent extends Agent {
 						String contentJSON = "{'price':" + currentOffer + "}";
 						inform.setContent(contentJSON);
 						currentOffer = 0;
+						successfulNegotiation = true;
 						return inform;	
 					}
 
 					protected void handleRejectProposal(ACLMessage cfp, ACLMessage propose, ACLMessage reject) {
 						log("Proposal rejected");
 					}
-					
+
 					public int onEnd() {
-						round = 1;
-						currentOffer = 0;
+						currentOffer = 0;						
 						return 0;
 					}
 				};
 			}
 		});
-		
+
 		log("Waiting for price requests...");
 	}
 
@@ -225,5 +240,15 @@ public class RetailAgent extends Agent {
 			return true;
 		else
 			return false;
+	}
+	// Method to set the strategy for the whole negotiation session (winning bidder changes to passive strategy)
+	private boolean checkStrategy() {
+		if (successfulNegotiation == true) {
+			successfulNegotiation = false;
+			return true;
+		}else {
+			return false;
+		}
+
 	}
 }
