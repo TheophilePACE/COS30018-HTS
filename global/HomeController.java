@@ -6,6 +6,7 @@ package global;
 
 import jade.core.Runtime;
 import applianceAgent.ApplianceAgent;
+import generationAgent.GenerationAgent;
 import homeAgent.HomeAgent;
 import homeAgent.TransmissionAgent;
 import jade.core.Profile;
@@ -51,6 +52,24 @@ public class HomeController {
 	public AgentController createAppliance(String agentName) {
 		return makeCreateAppliance(agentName, CYCLE_TIME, HOME_AGENT_ADDRESS, homeContainer, "Appliance", agentName);
 	}
+	private AgentController makeCreateGeneration(String agentName, long cycleTime, String homeAgentAdress, ContainerController containerController, String serviceType, String serviceName) {
+		Object[] appArgs = new Object[4];
+		appArgs[0] = cycleTime;
+		appArgs[1] = homeAgentAdress;
+		appArgs[2] = serviceType;
+		appArgs[3] = serviceName;
+		try {
+			AgentController generationCtrl = containerController.createNewAgent(agentName, GenerationAgent.class.getName(), appArgs);
+			generationCtrl.start();
+			return generationCtrl; 
+		} catch (Exception e) {
+			log(e.toString());
+			return null;
+		}
+	}
+	public AgentController createGeneration(String agentName) {
+		return makeCreateGeneration(agentName, CYCLE_TIME, HOME_AGENT_ADDRESS, homeContainer, "Appliance", agentName);
+	}
 	private AgentController makeCreateHomeAgent(String name,int maxBuyPrice, int minSellPrice, long cycleTime, String transmissionAgentAdress) {
 		if(homeAgent == null) {
 			try {
@@ -59,7 +78,7 @@ public class HomeController {
 				homeArgs[1] = minSellPrice; //minSellPrice
 				homeArgs[2] = cycleTime;
 				homeArgs[3] = transmissionAgentAdress;
-				
+
 				log("Creating agent Home ");
 				homeAgent = homeContainer.createNewAgent(name, HomeAgent.class.getName(), homeArgs);
 				homeAgent.start();		
@@ -94,7 +113,7 @@ public class HomeController {
 	public AgentController createTransmissionAgent() {
 		return makeCreateTransmissionAgent(TRANSMISSION_AGENT_ADDRESS, BROKER_AGENT_ADDRESS);
 	}
-	
+
 	private static String log(String s) {
 		String toPrint = "[" + HomeController.class.getName() + "] " + s;
 		System.out.println(toPrint);

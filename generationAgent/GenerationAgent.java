@@ -1,89 +1,164 @@
-/*
-* GENERATION AGENT                                                
-* Generates a consistent amount of energy in kwH and returns      
-* accrued energy when asked.   
-* TODO: Home agent association                                      
-**/
+/* ----------------------------------------------------------------- */
+/*   Generation Agent                                                */
+/*   Generates a consistent amount of energy in kwH and returns      */
+/*   accrued energy when asked.  The generation amount depends on    */
+/*   a historical PV generation pattern retrieved in VIC, Australia  */
+/* ----------------------------------------------------------------- */
 
-package cos30018.assignment;
+package generationAgent;
 
 import jade.core.Agent;
-import jade.core.behaviours.TickerBehaviour;
 import jade.core.AID;
 import jade.lang.acl.ACLMessage;
-import jade.proto.AchieveREInitiator;
+import jade.lang.acl.MessageTemplate;
+import jade.proto.AchieveREResponder;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
 import jade.domain.FIPANames;
-import java.util.Date;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.FailureException;
+import jade.domain.FIPAAgentManagement.NotUnderstoodException;
+import jade.domain.FIPAAgentManagement.RefuseException;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
+
+import java.io.FileReader;
+import java.util.Map;
+
+import org.supercsv.cellprocessor.*;
+import org.supercsv.cellprocessor.ift.*;
+import org.supercsv.io.*;
+import org.supercsv.prefs.*;
+//import org.json.*;
 
 public class GenerationAgent extends Agent {
+	
+	//TODO: needs input about yearly consumption, and ratio of base vs. fluctuating load from GUI SETTINGS && info about time step from home agent
+	private double getProduction() {
+		double installedCapacity = 2.5; //dummy value
+		int timestep = 23; //dummy value
+		double [] productionPattern = null; //initialize consumption array
+		
+		try {
+			productionPattern = readCSVData("PV_generation"); //dummy value 
+		} catch (Exception e) {
+			System.out.println("CSV read in unsuccessful");
+			e.printStackTrace();
+		}
+		double production_hourly = productionPattern[timestep] * installedCapacity;
+		return production_hourly; 
+	}
+	private long CYCLE_TIME;
+	private String HOME_AGENT_ADDRESS;
+	private String serviceType;
+	private String serviceName;
+	private MessageTemplate energyBalanceMessageTemplate;
+
 	protected void setup() {
 		Object[] args = getArguments();
-		
-		if (args != null && args.length > 0) {
-			System.out.println(getLocalName() + ", generation agent has been created.");
-			
-			// Add Ticker behaviour, rate is input arg
-			addBehaviour(new TickerBehaviour(this, (long)args[0]) {				
-				@Override
-				public void onTick() {
-					System.out.println(getBehaviourName() + ": Sending generated energy.");
-					
-					// Create REQUEST message 
-					ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
-					// Add receivers from input args
-					msg.addReceiver(new AID((String)args[1], AID.ISLOCALNAME));
-					// Set the interaction protocol
-					msg.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
-					// Specify the reply deadline (10 seconds)
-					msg.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
-					// Set message content
-					/*Edit based on generation rate; remove local energy
-					 * Current functionality: sends random kwH. 
-					 * TODO: Local energy storage & subtract on energy send
-					 **/
-					msg.setContent((int) Math.ceil(Math.random() * 10) + "kWh");
-					
-					// Add AchieveREInitiator behaviour 
-					myAgent.addBehaviour(new AchieveREInitiator(myAgent, msg) {
-						
-						// Method to handle an agree message from responder
-						protected void handleAgree(ACLMessage agree) {
-							System.out.println(getLocalName() + ": " + agree.getSender().getName() + " has agreed to the request");
-						}
-						
-						// Method to handle an inform message from responder
-						protected void handleInform(ACLMessage inform) {
-							System.out.println(getLocalName() + ": " + inform.getSender().getName() + " successfully sent generated energy");
-							System.out.println(getLocalName() + ": " + inform.getSender().getName() + " sent " + inform.getContent() + "kWh");
-							System.out.println(getLocalName() + ": subtracted " + inform.getContent() + "kWh locally");
-						}
-
-						// Method to handle a refuse message from responder
-						protected void handleRefuse(ACLMessage refuse) {
-							System.out.println(getLocalName() + ": " + refuse.getSender().getName() + " refused energy. Energy not subtracted locally");
-						}
-
-						// Method to handle a failure message (failure in delivering the message)
-						protected void handleFailure(ACLMessage failure) {
-							if (failure.getSender().equals(myAgent.getAMS())) {
-								// FAILURE notification from the JADE runtime: the receiver (receiver does not exist)
-								System.out.println(getLocalName() + ": " + "Responder does not exist");
-							} else {
-								System.out.println(getLocalName() + ": " + failure.getSender().getName() + " failed to perform the requested action");
-							}
-						}
-					});
-				}
-			});
-			System.out.println(getLocalName() + ": Behaviours added");
+		if (args == null || args.length == 0) {
+			throw new Error("Generation Agent needs arguments!!!");
 		}
-		else {
-			System.out.println(getLocalName() + ": Instantiation failed.");
-		}	
+
+		CYCLE_TIME = (long)args[0];
+		HOME_AGENT_ADDRESS = args[1].toString();
+		serviceType = args[2].toString();
+		serviceName = args[3].toString();
+		
+		registerService(serviceType, serviceName);
+		log("created: "+serviceName+" -> "+serviceName);
+
+		//template for a Message type request from the homeagent
+		energyBalanceMessageTemplate = MessageTemplate.and( MessageTemplate.and(
+				MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST),
+				MessageTemplate.MatchPerformative(ACLMessage.REQUEST)),
+				MessageTemplate.MatchSender(new AID(HOME_AGENT_ADDRESS,AID.ISLOCALNAME)) );
+
+		// Add Ticker Behaviour, rate is input arg
+		addBehaviour(new AchieveREResponder(this, energyBalanceMessageTemplate) {				
+			@Override
+			protected ACLMessage handleRequest(ACLMessage request) throws NotUnderstoodException, RefuseException {
+				log("Request received from "+request.getSender().getLocalName()+". Request is "+request.getContent());
+				// We agree to perform the action. Note that in the FIPA-Request
+				// protocol the AGREE message is optional. Return null if you
+				// don't want to send it.
+				log("Sending production data");
+				ACLMessage productionMessageResponse = request.createReply();
+				productionMessageResponse.setPerformative(ACLMessage.INFORM);
+				String contentJSON = "{'production':" + getProduction() +",unit:'kWh'}";
+				productionMessageResponse.setContent(contentJSON); //TODO REFACTOR OUT OF BEHAVIOUR
+				return productionMessageResponse;
+			}
+
+			protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response) throws FailureException {
+				log("Action successfully performed");
+				ACLMessage inform = request.createReply();
+				inform.setPerformative(ACLMessage.INFORM);
+				return inform;
+			}
+		});
+		log("Waiting for production requests...");
 	}
 	
+
+	// Method to register the service
+	void registerService(String type,String name)
+	{
+		ServiceDescription sd  = new ServiceDescription();
+		sd.setType(type);
+		sd.setName(name);
+		DFAgentDescription dfd = new DFAgentDescription();
+		dfd.setName(getAID());
+		dfd.addServices(sd); 
+
+		try {  
+			DFService.register(this, dfd );  
+		}
+		catch (FIPAException fe) { fe.printStackTrace(); }
+	}
+
 	protected void takeDown() {
-		System.out.println(getLocalName() + ": Self destructing");
+		log("Preparing to die");
 		// do cleanup
 	}
+	private String log(String s) {
+		String toPrint = "[" + getLocalName() + "] " + s;
+		System.out.println(toPrint);
+		return toPrint;
+	}
+	//Method to retrieve consumption/production data from CSV file
+	private static double [] readCSVData(String target) throws Exception{
+		final String CSV_FILENAME = "C:\\Users\\Victor\\Desktop\\Daten\\01_Masterstudium_TUM\\04_Swinburne\\02_Intelligent Systems\\GITCLONE\\src\\Total_Data.csv"; //change to new path
+		double [] data = new double [168];
+		ICsvMapReader mapReader = null;
+		try {
+			mapReader = new CsvMapReader(new FileReader(CSV_FILENAME), CsvPreference.STANDARD_PREFERENCE);
+
+			final String[] header = mapReader.getHeader(true); 
+			final CellProcessor[] processors = getProcessors();
+
+			Map<String, Object> customerMap;
+			int i = 0;
+			while( (customerMap = mapReader.read(header, processors)) != null ) {
+				data[i] = (double) customerMap.get(target);
+				i++;
+			}
+		}
+		finally {
+			if( mapReader != null ) {
+				mapReader.close();
+			}
+		}	
+		return data;
+	}
+	// Method to define cell data type
+	private static CellProcessor [] getProcessors() {
+
+		final CellProcessor[] processors = new CellProcessor [] {
+				new ParseInt(),//hourly time step
+				new ParseDouble(),//relative baseload energy consumption
+				new ParseDouble(),//relative fluctuating energy consumption
+				new ParseDouble() //relative PV production
+		};
+		return processors;
+	}	
 }

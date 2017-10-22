@@ -10,7 +10,7 @@ import brokerAgent.BrokerAgentController;
 
 public class GlobalController {
 	private static String HOME_AGENT_ADDRESS = "homeAgent";
-	private static long CYCLE_TIME = 20000;
+	private static long CYCLE_TIME = 10000;
 	private static int PORT = 1099;
 	private static String HOST = null;
 	private static String BROKER_ADRESS = "brokerAgent";
@@ -37,14 +37,16 @@ public class GlobalController {
 			homeController.createHomeAgent(30, 10); //This is an error but it should not crash, thanks to the controller
 			homeController.createAppliance("applianceAgent1");
 			homeController.createAppliance("applianceAgent2");
+			homeController.createGeneration("generationAgent1");
 		} catch (Exception e) {
 			log(e.toString());
 		}
 		
 		//Launch a broker and retailers
 		BrokerAgentController brokerAgentController = new BrokerAgentController(CYCLE_TIME, rt, HOST, PORT, BROKER_ADRESS);
-		brokerAgentController.createRetailerAgent("retailAgent1", "Retail Agent", "AGL","20.8");
-		brokerAgentController.createRetailerAgent("retailAgent2", "Retail Agent", "Origin","16.1");
+		brokerAgentController.createRetailerAgent("retailAgent1", "Retail Agent", "GloBird Energy","20.8");
+		brokerAgentController.createRetailerAgent("retailAgent2", "Retail Agent", "Origin","23.56");
+		brokerAgentController.createRetailerAgent("retailAgent3", "Retail Agent", "Pacific Hydro","16.1");
 		brokerAgentController.createBrokerAgent();
 //		brokerAgentController.createInitiatorAgent("Initiator Agent");
 	}
