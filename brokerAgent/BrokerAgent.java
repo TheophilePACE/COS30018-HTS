@@ -280,7 +280,7 @@ public class BrokerAgent extends Agent {
 						
 						protected void handleInform(ACLMessage inform) {
 							log(inform.getSender().getLocalName() + " successfully carried out the order");
-							String contentJSON = "{'requestType':" + requestType + ", 'quantity':" + quantity + ", 'price':" + bestPrice + "}";
+							String contentJSON = "{'requestType':" + requestType + ", 'quantity':" + quantity + ", 'price':" + bestPrice + ",'retailerId':" + inform.getSender().getLocalName() +"}";
 							brokeredDeal = contentJSON;
 						}
 						

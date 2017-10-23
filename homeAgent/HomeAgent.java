@@ -39,21 +39,10 @@ public class HomeAgent extends Agent {
 	private String transmissionAgentAddress= "";
 	private HashMap<String, Integer> applianceEnergyBalance = new HashMap<String, Integer>();
 	private AID[] applianceList, generationList;
+	HttpClient httpc;
 	private MessageTemplate energyBalanceMessageTemplate = MessageTemplate.and(
 			MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST),
 			MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
-
-	private void updateSettings() {
-			HttpClient httpc = new HttpClient(API_URL);
-			try {
-				String settings = httpc.getSettings();
-				JSONObject jsonSettings = new JSONObject(settings);
-				CYCLE_TIME= (int) (jsonSettings.get("CYCLE_TIME"));
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-		}
-	}
 	
 	protected void setup() {
 		//FIPANames.InteractionProtocol.FIPA_REQUEST
@@ -62,19 +51,19 @@ public class HomeAgent extends Agent {
 			API_URL= args[0].toString();
 			CYCLE_TIME=Integer.parseInt(args[1].toString());
 			transmissionAgentAddress=args[2].toString();
+			httpc = new HttpClient(API_URL);
 		} 
   
 		TickerBehaviour triggerEnergyBalance = (new TickerBehaviour(this,CYCLE_TIME) {
 			public void onTick() {
-				/*updateSettings();
+				updateSettings();
 				if(CYCLE_TIME!=(int)this.getPeriod())
-				{//CHANGE THE CYCLE TIME
+				//CHANGE THE CYCLE TIME
 					log("Cycle time has been changed from "+this.getPeriod() + " to " + CYCLE_TIME);
 					this.reset(CYCLE_TIME);
-				}*/
 				time++; //one hour more
 				System.out.println();
-				log("<---------------- NEW CYCLE. Hour: "+ time +" ----------------->");
+				log("<---------------- NEW CYCLE. Time: "+ time +" CYCLE_TIME:" + CYCLE_TIME + " ----------------->");
 				//Get all appliances address
 				applianceList = getAgentDescriptionList("Appliance");
 				//Get all generation address
@@ -161,6 +150,7 @@ public class HomeAgent extends Agent {
 			JSONObject response = new JSONObject(inform.getContent());
 			log(inform.getSender().getLocalName() + " successfully performed the request: '" + tR.getContent()
 			+ " negotiated price of: '" + response.getDouble("price") + " c/kWh'");
+			storeNegotiatedPrice(response.getString("retailerId"),response.getDouble("price"));
 			log("<-----------------END OF NEGOTIATION ----------------------> SUCCESS");
 			System.out.println();
 			System.out.println();
@@ -246,11 +236,43 @@ public class HomeAgent extends Agent {
 			return null;
 		}
 	}
-
-	private void storeApplianceEnergyBalance(String k,int v) {
-		//TODO IN A DBMS
-		Date date = new Date();
-		log("STORE: " +date.toString() + ": device "+ k + " --> " + v +"kW");
+	
+	private void updateSettings() {
+		try {
+			String settings = httpc.getSettings();
+			JSONObject jsonSettings = new JSONObject(settings);
+			CYCLE_TIME= (int) (jsonSettings.get("CYCLE_TIME"));
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+	}
+}
+	private void storeApplianceEnergyBalance(String applianceName,int balance) {
+		JSONObject jsonEnergyBalance = new JSONObject();
+		jsonEnergyBalance.put("applianceId", applianceName);
+		jsonEnergyBalance.put("time", this.time);
+		jsonEnergyBalance.put("quantity", balance);
+		try {
+			String requestResult = httpc.sendConsumption(jsonEnergyBalance.toString());
+			log("Stored in db : "+ jsonEnergyBalance.toString() +"Result : " + requestResult);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private void storeNegotiatedPrice(String retailerId,double price) {
+		JSONObject jsonPrice = new JSONObject();
+		jsonPrice.put("price", price);
+		jsonPrice.put("time", this.time);
+		jsonPrice.put("retailerId", retailerId);
+		try {
+			String requestResult = httpc.sendPrice(jsonPrice.toString());
+			log("Stored in db : "+ jsonPrice.toString() +"Result : " + requestResult);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	private String log(String s) {

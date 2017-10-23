@@ -9,12 +9,12 @@ import apiWrapper.HttpClient;
 import java.io.*;
 
 import jade.core.Runtime;
-import jade.tools.applet.JADEAppletRequestProto;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.wrapper.*;
 
 import brokerAgent.BrokerAgentController;
+import homeAgent.HomeController;
 
 public class GlobalController {
 	private static String HOME_AGENT_ADDRESS = "homeAgent";
@@ -37,11 +37,11 @@ public class GlobalController {
 	}
 	
 	public static void main(String[] args) throws StaleProxyException, InterruptedException {
-		/*String settings =  getSettings();
+		String settings =  getSettings();
 		System.out.println("SETTINGS : "+settings);
 		JSONObject jsonSettings = new JSONObject(settings);
 		CYCLE_TIME= (int) (jsonSettings.get("CYCLE_TIME"));
-		PORT = (int) (jsonSettings.get("JADE_PORT"));*/
+		PORT = (int) (jsonSettings.get("JADE_PORT"));
 		// Get a hold to the JADE runtime
 		Runtime rt = Runtime.instance();
 
@@ -71,7 +71,6 @@ public class GlobalController {
 		brokerAgentController.createRetailerAgent("retailAgent2", "Retail Agent", "Origin","23.56");
 		brokerAgentController.createRetailerAgent("retailAgent3", "Retail Agent", "Pacific Hydro","16.1");
 		brokerAgentController.createBrokerAgent();
-//		brokerAgentController.createInitiatorAgent("Initiator Agent");
 		
 		
 		

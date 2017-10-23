@@ -2,7 +2,7 @@
 /*    Run ApplianceAgentController for Appliance / Responder demo    */
 /* ----------------------------------------------------------------- */
 
-package global;
+package homeAgent;
 
 import jade.core.Runtime;
 import jade.core.Profile;
@@ -11,8 +11,6 @@ import jade.wrapper.*;
 
 import applianceAgent.ApplianceAgent;
 import generationAgent.GenerationAgent;
-import homeAgent.HomeAgent;
-import homeAgent.TransmissionAgent;
 
 public class HomeController {
 	private String HOME_AGENT_ADDRESS;

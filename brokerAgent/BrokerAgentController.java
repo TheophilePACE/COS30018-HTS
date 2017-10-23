@@ -5,7 +5,7 @@
 package brokerAgent;
 
 import jade.core.Runtime;
-import global.HomeController;
+import homeAgent.HomeController;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.wrapper.*;
