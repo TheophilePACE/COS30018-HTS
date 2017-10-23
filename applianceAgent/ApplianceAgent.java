@@ -32,8 +32,8 @@ public class ApplianceAgent extends Agent {
 	
 	//To do: needs input about yearly consumption, and ratio of base vs. fluctuating load from GUI SETTINGS
 	private double getConsumption() {
-		double ratio = 0.5; //dummy value
-		double yearly_consumption = 4000; //dummy value
+		double ratio = 10; //dummy value
+		double yearly_consumption = 5000; //dummy value
 		double [] consumption_pattern = null; //initialize consumption array
 		
 		try {

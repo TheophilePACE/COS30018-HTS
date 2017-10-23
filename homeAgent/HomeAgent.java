@@ -59,7 +59,7 @@ public class HomeAgent extends Agent {
 
 		TickerBehaviour triggerEnergyBalance = (new TickerBehaviour(this,CYCLE_TIME) {
 			public void onTick() {
-				/*updateSettings();
+				/*updateSettings();								******UNCOMMENT FOR API SETTINGS*********
 				if(CYCLE_TIME!=(int)this.getPeriod())
 				{//CHANGE THE CYCLE TIME
 					log("Cycle time has been changed from "+this.getPeriod() + " to " + CYCLE_TIME);
@@ -131,9 +131,17 @@ public class HomeAgent extends Agent {
 				log("Received all consumption respones.");
 			}
 			int quantity =  makeEnergyBalance();
-			log("Consumption: " + energyConsumed + " Generation: " + energyProducted + " --> BALANCE = " + quantity);
-			ACLMessage tradeRequest = createTradeRequest(quantity);
-			a.addBehaviour(new Negotiation(a,tradeRequest));
+			log("Consumption: " + energyConsumed + " Generation: " + energyProducted * -1 + " --> BALANCE = " + quantity);
+			
+			if (quantity != 0)
+			{
+				ACLMessage tradeRequest = createTradeRequest(quantity);
+				a.addBehaviour(new Negotiation(a,tradeRequest));
+			}
+			else
+			{
+				log("Perfect balance. No action required!");
+			}
 		}
 		
 	} 
@@ -208,13 +216,8 @@ public class HomeAgent extends Agent {
 		});
 		applianceEnergyBalance.clear(); // remove old values
 
-		energyBalance=energyConsumed + energyProducted;
-		
-		if (Math.random() > 0.5)
-			return energyBalance;
-		else
-			return energyBalance * -1;
-		
+		energyBalance = energyConsumed + energyProducted;
+		return energyBalance;
 	}
 
 	private AID[] getAgentDescriptionList(String serviceType) {

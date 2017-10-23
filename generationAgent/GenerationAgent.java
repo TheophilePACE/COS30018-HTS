@@ -36,17 +36,17 @@ public class GenerationAgent extends Agent {
 	
 	//TODO: needs input about yearly consumption, and ratio of base vs. fluctuating load from GUI SETTINGS
 	private double getProduction() {
-		double installedCapacity = 2.5; //dummy value
+		double installedCapacity = 20; //dummy value
 		double [] productionPattern = null; //initialize consumption array
 		
 		try {
-			productionPattern = readCSVData("PV_generation"); //dummy value 
+			productionPattern = readCSVData("PV_generation"); 
 		} catch (Exception e) {
 			System.out.println("CSV read in unsuccessful");
 			e.printStackTrace();
 		}
 		double production_hourly = productionPattern[timeStep] * installedCapacity;
-		return production_hourly; 
+		return production_hourly * -1; 
 	}
 	private String HOME_AGENT_ADDRESS;
 	private String serviceType;
