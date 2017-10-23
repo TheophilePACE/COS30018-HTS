@@ -26,6 +26,9 @@ import java.util.Vector;
 
 import org.json.JSONObject;
 
+import FIPA.stringsHelper;
+import apiWrapper.HttpClient;
+
 @SuppressWarnings("serial") 
 public class BrokerAgent extends Agent {
 	private String requestType;		// The type of request for the broker to perform (buy/sell)
@@ -44,14 +47,18 @@ public class BrokerAgent extends Agent {
 	private int round;	// The current round of negotiation
 	private int roundLimit = 31; // The maximum no. of rounds of negotiation. ****THIS NEEDS TO BE SET VIA GUI OR SOMETHING****
 	private boolean end; // Represents negotiation round limit status
-	
+	private HttpClient httpClient;
 	public Behaviour b;		// To store + suspend/resume AchieveReResponder behaviour
+	private String API_URL;
 	
 	protected void setup() {
 		// Print creation messages
 		log("I have been created");
-		
-		// Search for available retail agents
+		Object[] args = getArguments();
+		if (args != null && args.length > 0) {
+			API_URL= args[0].toString();
+			httpClient = new HttpClient(API_URL);
+		} 		// Search for available retail agents
 		DFAgentDescription dfd = new DFAgentDescription();
 		ServiceDescription sd = new ServiceDescription();
 		sd.setType("Retail Agent");
@@ -100,6 +107,8 @@ public class BrokerAgent extends Agent {
 					// Get quantity value
 					quantity = req.getInt("quantity");
 					
+					//update the roundLimit
+					updateSettings();
 					round = 1;
 					end = false;
 					
@@ -324,7 +333,16 @@ public class BrokerAgent extends Agent {
 	private JSONObject getRequestContent(ACLMessage request) {
 		return new JSONObject(request.getContent());
 	}
-	
+	private void updateSettings() {
+		try {
+			String settings = httpClient.getSettings();
+			JSONObject jsonSettings = new JSONObject(settings);
+			roundLimit= (int) (jsonSettings.get("roundsLimit"));
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+	}
+}
 	private String log(String s) {
 		String toPrint = "[" + getLocalName() + "] " + s;
 		System.out.println(toPrint);

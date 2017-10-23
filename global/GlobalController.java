@@ -66,7 +66,7 @@ public class GlobalController {
 		}
 		
 		//Launch a broker and retailers
-		BrokerAgentController brokerAgentController = new BrokerAgentController(CYCLE_TIME, rt, HOST, PORT, BROKER_ADRESS);
+		BrokerAgentController brokerAgentController = new BrokerAgentController(CYCLE_TIME, rt, HOST, PORT, BROKER_ADRESS,API_URL);
 		brokerAgentController.createRetailerAgent("retailAgent1", "Retail Agent", "GloBird Energy","20.8");
 		brokerAgentController.createRetailerAgent("retailAgent2", "Retail Agent", "Origin","23.56");
 		brokerAgentController.createRetailerAgent("retailAgent3", "Retail Agent", "Pacific Hydro","16.1");

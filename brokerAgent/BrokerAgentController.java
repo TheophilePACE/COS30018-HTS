@@ -16,8 +16,9 @@ public class BrokerAgentController {
 	private ContainerController retailersContainer;
 	private AgentController brokerAgent;
 	private AgentController initiatorAgent;
+	private String API_URL;
 	
-	public BrokerAgentController(long cycleTime, Runtime rt, String host, int port, String brokerAdress) {
+	public BrokerAgentController(long cycleTime, Runtime rt, String host, int port, String brokerAdress, String apiUrl) {
 		super();
 		BROKER_ADRESS = brokerAdress;
 		CYCLE_TIME = cycleTime;
@@ -27,13 +28,16 @@ public class BrokerAgentController {
 		log("The retailer container was created!");
 		brokerAgent =null;
 		initiatorAgent =null;
+		API_URL = apiUrl;
 	}
 	
 	//pure function. Private, usable through createBrokerAGent or the main
-	private AgentController makeCreateBrokerAgent(String name,long cycleTime, ContainerController cc) {
+	private AgentController makeCreateBrokerAgent(String name,long cycleTime, ContainerController cc,String apiUrl) {
 			try {
 				// Start Broker Agent
-				AgentController newAgent = cc.createNewAgent(name, BrokerAgent.class.getName(), new Object[0]);
+				Object[] args = new Object[1];
+				args[0] = apiUrl;
+				AgentController newAgent = cc.createNewAgent(name, BrokerAgent.class.getName(), args);
 				newAgent.start();
 				return newAgent;
 			} catch (Exception e) {
@@ -45,7 +49,7 @@ public class BrokerAgentController {
 	public AgentController createBrokerAgent() {
 		if(brokerAgent == null) {
 			log("Creating agent broker ");
-			brokerAgent= makeCreateBrokerAgent(BROKER_ADRESS, CYCLE_TIME, retailersContainer);
+			brokerAgent= makeCreateBrokerAgent(BROKER_ADRESS, CYCLE_TIME, retailersContainer,API_URL);
 		} else {
 			log("HomeAgent already created");
 		}
