@@ -37,11 +37,11 @@ public class GlobalController {
 	}
 	
 	public static void main(String[] args) throws StaleProxyException, InterruptedException {
-		String settings =  getSettings();
+		/*String settings =  getSettings();
 		System.out.println("SETTINGS : "+settings);
 		JSONObject jsonSettings = new JSONObject(settings);
 		CYCLE_TIME= (int) (jsonSettings.get("CYCLE_TIME"));
-		PORT = (int) (jsonSettings.get("JADE_PORT"));
+		PORT = (int) (jsonSettings.get("JADE_PORT"));*/
 		// Get a hold to the JADE runtime
 		Runtime rt = Runtime.instance();
 

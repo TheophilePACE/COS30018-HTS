@@ -24,6 +24,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import java.io.FileReader;
 import java.util.Map;
 
+import org.json.JSONObject;
 import org.supercsv.cellprocessor.*;
 import org.supercsv.cellprocessor.ift.*;
 import org.supercsv.io.*;
@@ -32,10 +33,9 @@ import org.supercsv.prefs.*;
 
 public class GenerationAgent extends Agent {
 	
-	//TODO: needs input about yearly consumption, and ratio of base vs. fluctuating load from GUI SETTINGS && info about time step from home agent
+	//TODO: needs input about yearly consumption, and ratio of base vs. fluctuating load from GUI SETTINGS
 	private double getProduction() {
 		double installedCapacity = 2.5; //dummy value
-		int timestep = 23; //dummy value
 		double [] productionPattern = null; //initialize consumption array
 		
 		try {
@@ -44,13 +44,14 @@ public class GenerationAgent extends Agent {
 			System.out.println("CSV read in unsuccessful");
 			e.printStackTrace();
 		}
-		double production_hourly = productionPattern[timestep] * installedCapacity;
+		double production_hourly = productionPattern[timeStep] * installedCapacity;
 		return production_hourly; 
 	}
 	private long CYCLE_TIME;
 	private String HOME_AGENT_ADDRESS;
 	private String serviceType;
 	private String serviceName;
+	private int timeStep;
 	private MessageTemplate energyBalanceMessageTemplate;
 
 	protected void setup() {
@@ -78,13 +79,13 @@ public class GenerationAgent extends Agent {
 			@Override
 			protected ACLMessage handleRequest(ACLMessage request) throws NotUnderstoodException, RefuseException {
 				log("Request received from "+request.getSender().getLocalName()+". Request is "+request.getContent());
-				// We agree to perform the action. Note that in the FIPA-Request
-				// protocol the AGREE message is optional. Return null if you
-				// don't want to send it.
-				log("Sending production data");
+				// get current time step
+				JSONObject req = getRequestContent(request);
+				timeStep = req.getInt("time");
+				log("Sending generation data");
 				ACLMessage productionMessageResponse = request.createReply();
 				productionMessageResponse.setPerformative(ACLMessage.INFORM);
-				String contentJSON = "{'production':" + getProduction() +",unit:'kWh'}";
+				String contentJSON = "{'consumption':" + getProduction() +",unit:'kWh'}";
 				productionMessageResponse.setContent(contentJSON); //TODO REFACTOR OUT OF BEHAVIOUR
 				return productionMessageResponse;
 			}
@@ -120,6 +121,11 @@ public class GenerationAgent extends Agent {
 		log("Preparing to die");
 		// do cleanup
 	}
+	
+	private JSONObject getRequestContent(ACLMessage request) {
+		return new JSONObject(request.getContent());
+	}
+	
 	private String log(String s) {
 		String toPrint = "[" + getLocalName() + "] " + s;
 		System.out.println(toPrint);
@@ -127,7 +133,7 @@ public class GenerationAgent extends Agent {
 	}
 	//Method to retrieve consumption/production data from CSV file
 	private static double [] readCSVData(String target) throws Exception{
-		final String CSV_FILENAME = "C:\\Users\\Victor\\Desktop\\Daten\\01_Masterstudium_TUM\\04_Swinburne\\02_Intelligent Systems\\GITCLONE\\src\\Total_Data.csv"; //change to new path
+		final String CSV_FILENAME = "src/Total_Data.csv"; 
 		double [] data = new double [168];
 		ICsvMapReader mapReader = null;
 		try {

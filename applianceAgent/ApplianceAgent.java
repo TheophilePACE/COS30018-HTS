@@ -24,6 +24,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import java.io.FileReader;
 import java.util.Map;
 
+import org.json.JSONObject;
 import org.supercsv.cellprocessor.*;
 import org.supercsv.cellprocessor.ift.*;
 import org.supercsv.io.*;
@@ -32,11 +33,10 @@ import org.supercsv.prefs.*;
 
 public class ApplianceAgent extends Agent {
 	
-	//To do: needs input about yearly consumption, and ratio of base vs. fluctuating load from GUI SETTINGS && info about time step from home agent
+	//To do: needs input about yearly consumption, and ratio of base vs. fluctuating load from GUI SETTINGS
 	private double getConsumption() {
 		double ratio = 0.5; //dummy value
 		double yearly_consumption = 4000; //dummy value
-		int timestep = 23; //dummy value
 		double [] consumption_pattern = null; //initialize consumption array
 		
 		try {
@@ -45,13 +45,14 @@ public class ApplianceAgent extends Agent {
 			System.out.println("CSV read in unsuccessful");
 			e.printStackTrace();
 		}
-		double consumption_hourly = consumption_pattern[timestep] * ratio * yearly_consumption;
+		double consumption_hourly = consumption_pattern[timeStep] * ratio * yearly_consumption;
 		return consumption_hourly; 
 	}
 	private long CYCLE_TIME;
 	private String HOME_AGENT_ADDRESS;
 	private String serviceType;
 	private String serviceName;
+	private int timeStep;
 	private MessageTemplate energyBalanceMessageTemplate;
 
 	protected void setup() {
@@ -79,14 +80,14 @@ public class ApplianceAgent extends Agent {
 			@Override
 			protected ACLMessage handleRequest(ACLMessage request) throws NotUnderstoodException, RefuseException {
 				log("Request received from "+request.getSender().getLocalName()+". Request is "+request.getContent());
-				// We agree to perform the action. Note that in the FIPA-Request
-				// protocol the AGREE message is optional. Return null if you
-				// don't want to send it.
+				// get current time step
+				JSONObject req = getRequestContent(request);
+				timeStep = req.getInt("time");
 				log("Sending consumption data");
 				ACLMessage consumptionMessageResponse = request.createReply();
 				consumptionMessageResponse.setPerformative(ACLMessage.INFORM);
 				String contentJSON = "{'consumption':" + getConsumption() +",unit:'kWh'}";
-				consumptionMessageResponse.setContent(contentJSON); //TODO REFACTOR OUT OF BEHAVIOUR
+				consumptionMessageResponse.setContent(contentJSON); 
 				return consumptionMessageResponse;
 			}
 
@@ -121,6 +122,11 @@ public class ApplianceAgent extends Agent {
 		log("Preparing to die");
 		// do cleanup
 	}
+	
+	private JSONObject getRequestContent(ACLMessage request) {
+		return new JSONObject(request.getContent());
+	}
+	
 	private String log(String s) {
 		String toPrint = "[" + getLocalName() + "] " + s;
 		System.out.println(toPrint);
@@ -128,7 +134,7 @@ public class ApplianceAgent extends Agent {
 	}
 	//Method to retrieve consumption data from CSV file
 	private static double [] readCSVData(String target) throws Exception{
-		final String CSV_FILENAME = "C:\\Users\\Victor\\Desktop\\Daten\\01_Masterstudium_TUM\\04_Swinburne\\02_Intelligent Systems\\COS30018_Group Assignment\\src\\cos30018\\applianceAgent\\Total_Data.csv"; //change to new path
+		final String CSV_FILENAME = "src/Total_Data.csv"; 
 		double [] data = new double [168];
 		ICsvMapReader mapReader = null;
 		try {

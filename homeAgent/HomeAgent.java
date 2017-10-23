@@ -38,8 +38,8 @@ public class HomeAgent extends Agent {
 	private String BetterProvider = "";
 	private String transmissionAgentAddress= "";
 	private HashMap<String, Integer> applianceEnergyBalance = new HashMap<String, Integer>();
-	private AID[] applianceList;
-	MessageTemplate energyBalanceMessageTemplate = MessageTemplate.and(
+	private AID[] applianceList, generationList;
+	private MessageTemplate energyBalanceMessageTemplate = MessageTemplate.and(
 			MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST),
 			MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
 
@@ -66,20 +66,22 @@ public class HomeAgent extends Agent {
 
 		TickerBehaviour triggerEnergyBalance = (new TickerBehaviour(this,CYCLE_TIME) {
 			public void onTick() {
-				updateSettings();
+				/*updateSettings();
 				if(CYCLE_TIME!=(int)this.getPeriod())
 				{//CHANGE THE CYCLE TIME
 					log("Cycle time has been changed from "+this.getPeriod() + " to " + CYCLE_TIME);
 					this.reset(CYCLE_TIME);
-				}
+				}*/
 				time++; //one hour more
 				System.out.println();
 				log("<---------------- NEW CYCLE. Hour: "+ time +" ----------------->");
-				//Get all aplliances address
+				//Get all appliances address
 				applianceList = getAgentDescriptionList("Appliance");
+				//Get all generation address
+				generationList = getAgentDescriptionList("Generation");
 				//MSG to all appliances asking for consumption
-				ACLMessage consumptionRequest = createConsumptionRequest(applianceList);
-				addBehaviour(new collectApplianceEnergyBalances(myAgent,consumptionRequest, applianceList.length, time));
+				ACLMessage consumptionRequest = createConsumptionRequest(applianceList, generationList);
+				addBehaviour(new collectApplianceEnergyBalances(myAgent, consumptionRequest, applianceList.length + generationList.length, time));
 			}
 		});
 		addBehaviour(triggerEnergyBalance);
@@ -94,6 +96,7 @@ public class HomeAgent extends Agent {
 			a= ag;
 			nResponders = nbAppliances;
 			time = time2;
+			log("Sending consumption requests");
 		}
 		private ACLMessage createTradeRequest(int quantity) {
 			
@@ -112,7 +115,7 @@ public class HomeAgent extends Agent {
 		protected void handleInform(ACLMessage inform) {
 			//Received the expected information
 			JSONObject JSONmsg = new JSONObject(inform.getContent());
-			log("energy balance for " + inform.getSender().getLocalName() + " => consumption: " + JSONmsg.getInt("consumption"));
+			log("Received consumption from " + inform.getSender().getLocalName() + ". Consumption is: " + JSONmsg.getInt("consumption"));		
 			setApplianceEnergyBalance(inform.getSender().getLocalName(), new Integer(JSONmsg.getInt("consumption")));
 			nResponders--;
 		}
@@ -135,7 +138,7 @@ public class HomeAgent extends Agent {
 				log("Received all consumption respones.");
 			}
 			int quantity =  makeEnergyBalance();
-			log("Consumption: " + energyConsumed + " production: " + energyProducted + " --> BALANCE = " + quantity);
+			log("Consumption: " + energyConsumed + " Generation: " + energyProducted + " --> BALANCE = " + quantity);
 			ACLMessage tradeRequest = createTradeRequest(quantity);
 			a.addBehaviour(new Negotiation(a,tradeRequest));
 		}
@@ -180,10 +183,13 @@ public class HomeAgent extends Agent {
 		}
 	}
 
-	private ACLMessage createConsumptionRequest(AID[] receivers) {
+	private ACLMessage createConsumptionRequest(AID[] appReceivers, AID[] genReceivers) {
 		ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
-		for (int i = 0; i < receivers.length; ++i) {
-			msg.addReceiver(receivers[i]);
+		for (int i = 0; i < appReceivers.length; ++i) {
+			msg.addReceiver(appReceivers[i]);
+		}
+		for (int i = 0; i < genReceivers.length; ++i) {
+			msg.addReceiver(genReceivers[i]);
 		}
 		msg.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
 		msg.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
@@ -227,7 +233,7 @@ public class HomeAgent extends Agent {
 		// Create and print list of retail agents found
 		try {
 			DFAgentDescription[] result = DFService.search(this, dfd); 
-			log("Found the following" + serviceType + " agents:");
+			log("Found the following " + serviceType + " agents:");
 			AID[] agentsFound = new AID[result.length];
 			for (int i = 0; i < result.length; ++i) {
 				agentsFound[i] = result[i].getName();
@@ -244,7 +250,7 @@ public class HomeAgent extends Agent {
 	private void storeApplianceEnergyBalance(String k,int v) {
 		//TODO IN A DBMS
 		Date date = new Date();
-		log("STORE: " +date.toString() + ": device"+ k + "-->" + v +"kW");
+		log("STORE: " +date.toString() + ": device "+ k + " --> " + v +"kW");
 	}
 
 	private String log(String s) {

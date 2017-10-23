@@ -24,7 +24,7 @@ public class RetailAgent extends Agent {
 	private double getBuyPrice(int negotiationRound) {
 		double offer = 11.3; // equals to the current Feed in tariff in Victoria as of 2017
 		offer = 11.3 + (Math.sin((10*Math.random())*(double)negotiationRound)+(double)negotiationRound/2);
-		return offer;
+		return round(offer, 2);
 	}
 	private double getSellPrice(int negotiationRound) {
 		double offer;
@@ -36,7 +36,7 @@ public class RetailAgent extends Agent {
 		{
 			offer = Math.exp(1.05*Math.random()-(negotiationRound/30)*Math.log(initialOffer-7))+7; //aggressive conceder utility function with a price limit at 7 c/kWh
 		}
-		return offer;
+		return round(offer, 2);
 	}
 
 	private double currentOffer = 0;
@@ -249,6 +249,9 @@ public class RetailAgent extends Agent {
 		}else {
 			return false;
 		}
-
+	}
+	private static double round (double value, int precision) {
+	    int scale = (int) Math.pow(10, precision);
+	    return (double) Math.round(value * scale) / scale;
 	}
 }

@@ -70,7 +70,7 @@ public class HomeController {
 		}
 	}
 	public AgentController createGeneration(String agentName) {
-		return makeCreateGeneration(agentName, CYCLE_TIME, HOME_AGENT_ADDRESS, homeContainer, "Appliance", agentName);
+		return makeCreateGeneration(agentName, CYCLE_TIME, HOME_AGENT_ADDRESS, homeContainer, "Generation", agentName);
 	}
 
 	private AgentController makeCreateHomeAgent(String name,String API_URL, long cycleTime, String transmissionAgentAdress) {
