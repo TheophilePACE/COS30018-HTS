@@ -63,7 +63,7 @@ public class HomeAgent extends Agent {
 			CYCLE_TIME=Integer.parseInt(args[1].toString());
 			transmissionAgentAddress=args[2].toString();
 		} 
-
+  
 		TickerBehaviour triggerEnergyBalance = (new TickerBehaviour(this,CYCLE_TIME) {
 			public void onTick() {
 				updateSettings();
@@ -74,7 +74,7 @@ public class HomeAgent extends Agent {
 				}
 				time++; //one hour more
 				System.out.println();
-				log("<---------------- NEW CYCLE. Hour: "+ time +" ----------------->");
+				log("<---------------- NEW CYCLE. Hour: "+ time +", CYCLE_TIME:"+CYCLE_TIME+" ----------------->");
 				//Get all aplliances address
 				applianceList = getAgentDescriptionList("Appliance");
 				//MSG to all appliances asking for consumption
