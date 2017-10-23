@@ -100,9 +100,7 @@ public class BrokerAgent extends Agent {
 				brokeredDeal = null;
 				
 				// Refuse request if no retail agents are found
-				ACLMessage response = request.createReply();
 				if (retailAgents != null) {
-					response.setPerformative(ACLMessage.AGREE);
 					// Get entire request as JSON object
 					JSONObject req = getRequestContent(request);	
 					// Parse values from JSON object
@@ -307,9 +305,10 @@ public class BrokerAgent extends Agent {
 					myAgent.removeBehaviour(this);
 				}	
 				else {
-					response.setPerformative(ACLMessage.REFUSE);
+					log("Cannot initiate negotiation.");
+					throw new RefuseException("evaluation-failed");
 				}
-				return response;
+				return null;
 			}
 
 			// If the agent agreed to the request received, then it has to perform the associated action and return the result of the action
