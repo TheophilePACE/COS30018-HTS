@@ -1,3 +1,7 @@
+/** ----------------------------------------------------------------- */
+/**    HomeAgent												      */
+/** ----------------------------------------------------------------- */
+
 package homeAgent;
 
 import jade.core.AID;
@@ -20,6 +24,7 @@ import org.json.*;
 
 import apiWrapper.HttpClient;
 
+@SuppressWarnings("serial")
 public class HomeAgent extends Agent {
 	private int CYCLE_TIME;
 	private long time = 0 ;
@@ -29,14 +34,12 @@ public class HomeAgent extends Agent {
 	private int energyProducted = 0;
 	private int energyConsumed = 0;
 
-
-
 	//TODO Change at every cycle. Provided by the Broker
 	@SuppressWarnings("unused")
 	private int BetterPrice = 0;
 	@SuppressWarnings("unused")
 	private String BetterProvider = "";
-	private String transmissionAgentAddress= "";
+	private String brokerAgentAddress = "";
 	private HashMap<String, Integer> applianceEnergyBalance = new HashMap<String, Integer>();
 	private AID[] applianceList, generationList;
 	HttpClient httpc;
@@ -48,29 +51,30 @@ public class HomeAgent extends Agent {
 		//FIPANames.InteractionProtocol.FIPA_REQUEST
 		Object[] args = getArguments();
 		if (args != null && args.length > 0) {
-			API_URL= args[0].toString();
-			CYCLE_TIME=Integer.parseInt(args[1].toString());
-			transmissionAgentAddress=args[2].toString();
+			API_URL = args[0].toString();
+			CYCLE_TIME = Integer.parseInt(args[1].toString());
+			brokerAgentAddress = args[2].toString();
 			httpc = new HttpClient(API_URL);
 		} 
-  
+
 		TickerBehaviour triggerEnergyBalance = (new TickerBehaviour(this,CYCLE_TIME) {
 			public void onTick() {
-				updateSettings();
+				/*updateSettings();
 				if(CYCLE_TIME!=(int)this.getPeriod())
-				//CHANGE THE CYCLE TIME
+				{//CHANGE THE CYCLE TIME
 					log("Cycle time has been changed from "+this.getPeriod() + " to " + CYCLE_TIME);
 					this.reset(CYCLE_TIME);
+				}*/
 				time++; //one hour more
 				System.out.println();
-				log("<---------------- NEW CYCLE. Time: "+ time +" CYCLE_TIME:" + CYCLE_TIME + " ----------------->");
+				log("<---------------- || NEW CYCLE || Time: "+ time +" || CYCLE_TIME: " + CYCLE_TIME + " || ----------------->");
 				//Get all appliances address
 				applianceList = getAgentDescriptionList("Appliance");
 				//Get all generation address
 				generationList = getAgentDescriptionList("Generation");
 				//MSG to all appliances asking for consumption
 				ACLMessage consumptionRequest = createConsumptionRequest(applianceList, generationList);
-				addBehaviour(new collectApplianceEnergyBalances(myAgent, consumptionRequest, applianceList.length + generationList.length, time));
+				addBehaviour(new collectApplianceEnergyBalances(myAgent, consumptionRequest, applianceList.length + generationList.length));
 			}
 		});
 		addBehaviour(triggerEnergyBalance);
@@ -79,25 +83,25 @@ public class HomeAgent extends Agent {
 	private class collectApplianceEnergyBalances extends AchieveREInitiator {
 		private int nResponders =0;
 		private Agent a;
-		private long time ;
-		public collectApplianceEnergyBalances(Agent ag, ACLMessage consumptionRequest, int nbAppliances, long time2) {
+		public collectApplianceEnergyBalances(Agent ag, ACLMessage consumptionRequest, int nbAppliances) {
 			super(ag, consumptionRequest);
 			a= ag;
 			nResponders = nbAppliances;
-			time = time2;
 			log("Sending consumption requests");
 		}
 		private ACLMessage createTradeRequest(int quantity) {
 			
 			ACLMessage tradeRequest = new ACLMessage(ACLMessage.REQUEST);
 			// Add receivers from input args
-			tradeRequest.addReceiver(new AID(transmissionAgentAddress, AID.ISLOCALNAME));
+			tradeRequest.addReceiver(new AID(brokerAgentAddress, AID.ISLOCALNAME));
 			// Set the interaction protocol
 			tradeRequest.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
 			// Specify the reply deadline (10 seconds)
 			tradeRequest.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
 			// Set message content, if quantity >0 we need to buy otherwise sell
-			String contentJSON = "{'quantity':" + quantity + ",'time':"+time+"}";
+			String contentJSON = "{'requestType':'" 
+					+( ( quantity > 0) ? "Buy" : "Sell" )+ 
+					"','quantity':" + quantity + "}";
 			tradeRequest.setContent(contentJSON);
 			return tradeRequest;
 		}
@@ -150,8 +154,8 @@ public class HomeAgent extends Agent {
 			JSONObject response = new JSONObject(inform.getContent());
 			log(inform.getSender().getLocalName() + " successfully performed the request: '" + tR.getContent()
 			+ " negotiated price of: '" + response.getDouble("price") + " c/kWh'");
-			storeNegotiatedPrice(response.getString("retailerId"),response.getDouble("price"));
-			log("<-----------------END OF NEGOTIATION ----------------------> SUCCESS");
+			//storeNegotiatedPrice(response.getString("retailerId"),response.getDouble("price"));
+			log("<----------------- || END OF NEGOTIATION || SUCCESS || ---------------------->");
 			System.out.println();
 			System.out.println();
 		}
@@ -168,7 +172,7 @@ public class HomeAgent extends Agent {
 				log("Responder does not exist");
 			} else {
 				log(failure.getSender().getLocalName() + " failed to perform the requested action");
-				log("<-----------------END OF NEGOTIATION ----------------------> UNSUCCESSFUL");
+				log("<----------------- || END OF NEGOTIATION || UNSUCCESSFUL ||---------------------->");
 			}
 		}
 	}
@@ -200,7 +204,7 @@ public class HomeAgent extends Agent {
 				energyConsumed+=v;
 			else
 				energyProducted+=v;
-			storeApplianceEnergyBalance(k, v); //Store old value
+			//storeApplianceEnergyBalance(k, v); //Store old value
 		});
 		applianceEnergyBalance.clear(); // remove old values
 
@@ -236,7 +240,7 @@ public class HomeAgent extends Agent {
 			return null;
 		}
 	}
-	
+
 	private void updateSettings() {
 		try {
 			String settings = httpc.getSettings();

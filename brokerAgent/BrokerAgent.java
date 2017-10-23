@@ -47,6 +47,7 @@ public class BrokerAgent extends Agent {
 	private int round;	// The current round of negotiation
 	private int roundLimit = 31; // The maximum no. of rounds of negotiation. ****THIS NEEDS TO BE SET VIA GUI OR SOMETHING****
 	private boolean end; // Represents negotiation round limit status
+	
 	private HttpClient httpClient;
 	public Behaviour b;		// To store + suspend/resume AchieveReResponder behaviour
 	private String API_URL;
@@ -54,11 +55,14 @@ public class BrokerAgent extends Agent {
 	protected void setup() {
 		// Print creation messages
 		log("I have been created");
+		
 		Object[] args = getArguments();
 		if (args != null && args.length > 0) {
 			API_URL= args[0].toString();
 			httpClient = new HttpClient(API_URL);
-		} 		// Search for available retail agents
+		}
+		
+		// Search for available retail agents
 		DFAgentDescription dfd = new DFAgentDescription();
 		ServiceDescription sd = new ServiceDescription();
 		sd.setType("Retail Agent");
@@ -92,7 +96,7 @@ public class BrokerAgent extends Agent {
 		// The responder can either choose to agree to request or refuse request
 		addBehaviour(new AchieveREResponder(this, template) {
 			protected ACLMessage handleRequest(ACLMessage request) throws NotUnderstoodException, RefuseException {
-				log("Broker request received from: " + request.getSender().getLocalName() + ". Request is: '" + request.getContent() + "'");
+				log("Broker request received from " + request.getSender().getLocalName() + ". Request is: '" + request.getContent() + "'");
 				brokeredDeal = null;
 				
 				// Refuse request if no retail agents are found
@@ -108,7 +112,7 @@ public class BrokerAgent extends Agent {
 					quantity = req.getInt("quantity");
 					
 					//update the roundLimit
-					updateSettings();
+					//updateSettings();                  ******UNCOMMENT FOR API SETTINGS*********
 					round = 1;
 					end = false;
 					
@@ -333,6 +337,7 @@ public class BrokerAgent extends Agent {
 	private JSONObject getRequestContent(ACLMessage request) {
 		return new JSONObject(request.getContent());
 	}
+	
 	private void updateSettings() {
 		try {
 			String settings = httpClient.getSettings();
@@ -341,8 +346,9 @@ public class BrokerAgent extends Agent {
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}
 	}
-}
+	
 	private String log(String s) {
 		String toPrint = "[" + getLocalName() + "] " + s;
 		System.out.println(toPrint);

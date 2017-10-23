@@ -1,9 +1,9 @@
-/* ----------------------------------------------------------------- */
-/*   Generation Agent                                                */
-/*   Generates a consistent amount of energy in kwH and returns      */
-/*   accrued energy when asked.  The generation amount depends on    */
-/*   a historical PV generation pattern retrieved in VIC, Australia  */
-/* ----------------------------------------------------------------- */
+/** ----------------------------------------------------------------- */
+/**   Generation Agent                                                */
+/**   Generates a consistent amount of energy in kwH and returns      */
+/**   accrued energy when asked.  The generation amount depends on    */
+/**   a historical PV generation pattern retrieved in VIC, Australia  */
+/** ----------------------------------------------------------------- */
 
 package generationAgent;
 
@@ -31,6 +31,7 @@ import org.supercsv.io.*;
 import org.supercsv.prefs.*;
 //import org.json.*;
 
+@SuppressWarnings("serial")
 public class GenerationAgent extends Agent {
 	
 	//TODO: needs input about yearly consumption, and ratio of base vs. fluctuating load from GUI SETTINGS
@@ -47,7 +48,6 @@ public class GenerationAgent extends Agent {
 		double production_hourly = productionPattern[timeStep] * installedCapacity;
 		return production_hourly; 
 	}
-	private long CYCLE_TIME;
 	private String HOME_AGENT_ADDRESS;
 	private String serviceType;
 	private String serviceName;
@@ -59,11 +59,9 @@ public class GenerationAgent extends Agent {
 		if (args == null || args.length == 0) {
 			throw new Error("Generation Agent needs arguments!!!");
 		}
-
-		CYCLE_TIME = (long)args[0];
-		HOME_AGENT_ADDRESS = args[1].toString();
-		serviceType = args[2].toString();
-		serviceName = args[3].toString();
+		HOME_AGENT_ADDRESS = args[0].toString();
+		serviceType = args[1].toString();
+		serviceName = args[2].toString();
 		
 		registerService(serviceType, serviceName);
 		log("created: "+serviceName+" -> "+serviceName);

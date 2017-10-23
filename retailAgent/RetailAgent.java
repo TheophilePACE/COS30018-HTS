@@ -2,7 +2,7 @@
 /**   Retail Agent                                                    */
 /** ----------------------------------------------------------------- */
 
-package brokerAgent;
+package retailAgent;
 
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;

@@ -1,5 +1,5 @@
 /** ----------------------------------------------------------------- */
-/**              Run for Broker / Retailers demonstration             */
+/**      BrokerAgentController							              */
 /** ----------------------------------------------------------------- */
 
 package brokerAgent;
@@ -9,35 +9,30 @@ import homeAgent.HomeController;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.wrapper.*;
+import retailAgent.RetailAgent;
 
 public class BrokerAgentController {
-	private long CYCLE_TIME;
-	private String BROKER_ADRESS;
 	private ContainerController retailersContainer;
 	private AgentController brokerAgent;
-	private AgentController initiatorAgent;
 	private String API_URL;
 	
-	public BrokerAgentController(long cycleTime, Runtime rt, String host, int port, String brokerAdress, String apiUrl) {
+	public BrokerAgentController(Runtime rt, String host, int port, String apiUrl) {
 		super();
-		BROKER_ADRESS = brokerAdress;
-		CYCLE_TIME = cycleTime;
 		Profile pRetailerContainer = new ProfileImpl(host,port,null,false); //create a non-main container
 		pRetailerContainer.setParameter(Profile.CONTAINER_NAME,"retailersContainer");
 		retailersContainer = rt.createAgentContainer(pRetailerContainer);
 		log("The retailer container was created!");
 		brokerAgent =null;
-		initiatorAgent =null;
 		API_URL = apiUrl;
 	}
 	
 	//pure function. Private, usable through createBrokerAGent or the main
-	private AgentController makeCreateBrokerAgent(String name,long cycleTime, ContainerController cc,String apiUrl) {
+	private AgentController makeCreateBrokerAgent(ContainerController cc, String apiUrl) {
 			try {
 				// Start Broker Agent
 				Object[] args = new Object[1];
 				args[0] = apiUrl;
-				AgentController newAgent = cc.createNewAgent(name, BrokerAgent.class.getName(), args);
+				AgentController newAgent = cc.createNewAgent("brokerAgent", BrokerAgent.class.getName(), args);
 				newAgent.start();
 				return newAgent;
 			} catch (Exception e) {
@@ -49,44 +44,11 @@ public class BrokerAgentController {
 	public AgentController createBrokerAgent() {
 		if(brokerAgent == null) {
 			log("Creating agent broker ");
-			brokerAgent= makeCreateBrokerAgent(BROKER_ADRESS, CYCLE_TIME, retailersContainer,API_URL);
+			brokerAgent= makeCreateBrokerAgent(retailersContainer, API_URL);
 		} else {
 			log("HomeAgent already created");
 		}
 		return brokerAgent;
-	}
-	
-	private AgentController makeCreateIniatorAgent(String name, long cycleTime,String brokerAdress, ContainerController cc) {
-		// Start Initiator Agent
-		// Args[0] determines tick rate
-		// Args[1] determines name of broker agent to send to
-		Object[] initiatorArgs = new Object[2];
-		initiatorArgs[0] = cycleTime;
-		initiatorArgs[1] = brokerAdress;
-		try {
-		AgentController initiatorCtrl = cc.createNewAgent(name, InitiatorAgent.class.getName(), initiatorArgs);
-		initiatorCtrl.start();
-		return initiatorCtrl;
-		} catch (Exception e) {
-			log(e.toString());
-			return null;
-		}	
-	}
-	public AgentController createInitiatorAgent(String agentName) {
-		//TO BE CALLED AFTER THE BROKER IS CREATED
-		if((initiatorAgent == null ) && (brokerAgent != null)) {
-			log("Creating agent initiator");
-			initiatorAgent = makeCreateIniatorAgent(agentName, CYCLE_TIME, BROKER_ADRESS, retailersContainer);
-			return initiatorAgent;
-		} else if ((initiatorAgent == null ) && (brokerAgent == null)) {
-			log("Create a broker agent first !!!!");
-			return null;
-		} else if(initiatorAgent != null){
-			log("Initiator agent already created !!!");
-			return initiatorAgent;
-		} else {
-			throw new Error("CREATING INITIATOR AGENT ==> WTF IMPOSSIBLE CASE");
-		}
 	}
 	
 	private AgentController makeCreateRetailerAgent(String name,String service,String companyName, String initialOffer, ContainerController cc) {
@@ -147,15 +109,6 @@ public class BrokerAgentController {
 		// Start Broker Agent
 		AgentController brokerCtrl = mainCtrl.createNewAgent("Broker Agent", BrokerAgent.class.getName(), new Object[0]);
 		brokerCtrl.start();
-		
-		// Start Initiator Agent
-		// Args[0] determines tick rate
-		// Args[1] determines name of broker agent to send to
-		Object[] initiatorArgs = new Object[2];
-		initiatorArgs[0] = (long)10000;
-		initiatorArgs[1] = "Broker Agent";
-		AgentController initiatorCtrl = mainCtrl.createNewAgent("Initiator Agent", InitiatorAgent.class.getName(), initiatorArgs);
-		initiatorCtrl.start();
 	}
 	private static String log(String s) {
 		String toPrint = "[" + HomeController.class.getName() + "] " + s;

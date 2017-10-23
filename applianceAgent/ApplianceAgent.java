@@ -1,9 +1,6 @@
-/* ----------------------------------------------------------------- */
-/*   Appliance Agent                                                 */
-/*   Takes tick rate and ResponderAgent name as input args, sends    */
-/*   energy usage request to ResponderAgent each tick based on its   */
-/*   appliance type and yearly consumption pattern 					 */
-/* ----------------------------------------------------------------- */
+/** ----------------------------------------------------------------- */
+/**   Appliance Agent                                                 */
+/** ----------------------------------------------------------------- */
 
 package applianceAgent;
 
@@ -29,8 +26,8 @@ import org.supercsv.cellprocessor.*;
 import org.supercsv.cellprocessor.ift.*;
 import org.supercsv.io.*;
 import org.supercsv.prefs.*;
-//import org.json.*;
 
+@SuppressWarnings("serial")
 public class ApplianceAgent extends Agent {
 	
 	//To do: needs input about yearly consumption, and ratio of base vs. fluctuating load from GUI SETTINGS
@@ -48,7 +45,6 @@ public class ApplianceAgent extends Agent {
 		double consumption_hourly = consumption_pattern[timeStep] * ratio * yearly_consumption;
 		return consumption_hourly; 
 	}
-	private long CYCLE_TIME;
 	private String HOME_AGENT_ADDRESS;
 	private String serviceType;
 	private String serviceName;
@@ -60,11 +56,9 @@ public class ApplianceAgent extends Agent {
 		if (args == null || args.length == 0) {
 			throw new Error("Appliance AGent needs arguments!!!");
 		}
-
-		CYCLE_TIME = (long)args[0];
-		HOME_AGENT_ADDRESS = args[1].toString();
-		serviceType = args[2].toString();
-		serviceName = args[3].toString();
+		HOME_AGENT_ADDRESS = args[0].toString();
+		serviceType = args[1].toString();
+		serviceName = args[2].toString();
 		
 		registerService(serviceType, serviceName);
 		log("created: "+serviceName+" -> "+serviceName);
