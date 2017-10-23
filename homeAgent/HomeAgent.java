@@ -158,7 +158,7 @@ public class HomeAgent extends Agent {
 			JSONObject response = new JSONObject(inform.getContent());
 			log(inform.getSender().getLocalName() + " successfully performed the request: '" + tR.getContent()
 			+ " negotiated price of: '" + response.getDouble("price") + " c/kWh'");
-			log("<-----------------END OF NEGOTIATION ---------------------->");
+			log("<-----------------END OF NEGOTIATION ----------------------> SUCCESS");
 			System.out.println();
 			System.out.println();
 		}
@@ -175,6 +175,7 @@ public class HomeAgent extends Agent {
 				log("Responder does not exist");
 			} else {
 				log(failure.getSender().getLocalName() + " failed to perform the requested action");
+				log("<-----------------END OF NEGOTIATION ----------------------> UNSUCCESSFUL");
 			}
 		}
 	}
@@ -208,7 +209,12 @@ public class HomeAgent extends Agent {
 		applianceEnergyBalance.clear(); // remove old values
 
 		energyBalance=energyConsumed + energyProducted;
-		return energyBalance;
+		
+		if (Math.random() > 0.5)
+			return energyBalance;
+		else
+			return energyBalance * -1;
+		
 	}
 
 	private AID[] getAgentDescriptionList(String serviceType) {
