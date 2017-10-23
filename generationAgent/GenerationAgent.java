@@ -1,11 +1,11 @@
 /* ----------------------------------------------------------------- */
-/*   Appliance Agent                                                 */
-/*   Takes tick rate and ResponderAgent name as input args, sends    */
-/*   energy usage request to ResponderAgent each tick based on its   */
-/*   appliance type and yearly consumption pattern 					 */
+/*   Generation Agent                                                */
+/*   Generates a consistent amount of energy in kwH and returns      */
+/*   accrued energy when asked.  The generation amount depends on    */
+/*   a historical PV generation pattern retrieved in VIC, Australia  */
 /* ----------------------------------------------------------------- */
 
-package applianceAgent;
+package generationAgent;
 
 import jade.core.Agent;
 import jade.core.AID;
@@ -31,22 +31,21 @@ import org.supercsv.io.*;
 import org.supercsv.prefs.*;
 //import org.json.*;
 
-public class ApplianceAgent extends Agent {
+public class GenerationAgent extends Agent {
 	
-	//To do: needs input about yearly consumption, and ratio of base vs. fluctuating load from GUI SETTINGS
-	private double getConsumption() {
-		double ratio = 0.5; //dummy value
-		double yearly_consumption = 4000; //dummy value
-		double [] consumption_pattern = null; //initialize consumption array
+	//TODO: needs input about yearly consumption, and ratio of base vs. fluctuating load from GUI SETTINGS
+	private double getProduction() {
+		double installedCapacity = 2.5; //dummy value
+		double [] productionPattern = null; //initialize consumption array
 		
 		try {
-			consumption_pattern = readCSVData("base_load"); //dummy value 
+			productionPattern = readCSVData("PV_generation"); //dummy value 
 		} catch (Exception e) {
 			System.out.println("CSV read in unsuccessful");
 			e.printStackTrace();
 		}
-		double consumption_hourly = consumption_pattern[timeStep] * ratio * yearly_consumption;
-		return consumption_hourly; 
+		double production_hourly = productionPattern[timeStep] * installedCapacity;
+		return production_hourly; 
 	}
 	private long CYCLE_TIME;
 	private String HOME_AGENT_ADDRESS;
@@ -58,7 +57,7 @@ public class ApplianceAgent extends Agent {
 	protected void setup() {
 		Object[] args = getArguments();
 		if (args == null || args.length == 0) {
-			throw new Error("Appliance AGent needs arguments!!!");
+			throw new Error("Generation Agent needs arguments!!!");
 		}
 
 		CYCLE_TIME = (long)args[0];
@@ -69,7 +68,7 @@ public class ApplianceAgent extends Agent {
 		registerService(serviceType, serviceName);
 		log("created: "+serviceName+" -> "+serviceName);
 
-		//tmplate for a Message type resuest from the homeagent
+		//template for a Message type request from the homeagent
 		energyBalanceMessageTemplate = MessageTemplate.and( MessageTemplate.and(
 				MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST),
 				MessageTemplate.MatchPerformative(ACLMessage.REQUEST)),
@@ -83,12 +82,12 @@ public class ApplianceAgent extends Agent {
 				// get current time step
 				JSONObject req = getRequestContent(request);
 				timeStep = req.getInt("time");
-				log("Sending consumption data");
-				ACLMessage consumptionMessageResponse = request.createReply();
-				consumptionMessageResponse.setPerformative(ACLMessage.INFORM);
-				String contentJSON = "{'consumption':" + getConsumption() +",unit:'kWh'}";
-				consumptionMessageResponse.setContent(contentJSON); 
-				return consumptionMessageResponse;
+				log("Sending generation data");
+				ACLMessage productionMessageResponse = request.createReply();
+				productionMessageResponse.setPerformative(ACLMessage.INFORM);
+				String contentJSON = "{'consumption':" + getProduction() +",unit:'kWh'}";
+				productionMessageResponse.setContent(contentJSON); //TODO REFACTOR OUT OF BEHAVIOUR
+				return productionMessageResponse;
 			}
 
 			protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response) throws FailureException {
@@ -98,7 +97,7 @@ public class ApplianceAgent extends Agent {
 				return inform;
 			}
 		});
-		log("Waiting for consumption requests...");
+		log("Waiting for production requests...");
 	}
 	
 
@@ -132,7 +131,7 @@ public class ApplianceAgent extends Agent {
 		System.out.println(toPrint);
 		return toPrint;
 	}
-	//Method to retrieve consumption data from CSV file
+	//Method to retrieve consumption/production data from CSV file
 	private static double [] readCSVData(String target) throws Exception{
 		final String CSV_FILENAME = "src/Total_Data.csv"; 
 		double [] data = new double [168];
@@ -148,7 +147,6 @@ public class ApplianceAgent extends Agent {
 			while( (customerMap = mapReader.read(header, processors)) != null ) {
 				data[i] = (double) customerMap.get(target);
 				i++;
-				//				System.out.println(customerMap.get("rel_fluctuating load"));
 			}
 		}
 		finally {

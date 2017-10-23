@@ -18,7 +18,7 @@ import brokerAgent.BrokerAgentController;
 
 public class GlobalController {
 	private static String HOME_AGENT_ADDRESS = "homeAgent";
-	private static int CYCLE_TIME = 20000;
+	private static long CYCLE_TIME = 10000;
 	private static int PORT = 1099;
 	private static String HOST = null;
 	private static String BROKER_ADRESS = "brokerAgent";
@@ -37,11 +37,11 @@ public class GlobalController {
 	}
 	
 	public static void main(String[] args) throws StaleProxyException, InterruptedException {
-		String settings =  getSettings();
+		/*String settings =  getSettings();
 		System.out.println("SETTINGS : "+settings);
 		JSONObject jsonSettings = new JSONObject(settings);
 		CYCLE_TIME= (int) (jsonSettings.get("CYCLE_TIME"));
-		PORT = (int) (jsonSettings.get("JADE_PORT"));
+		PORT = (int) (jsonSettings.get("JADE_PORT"));*/
 		// Get a hold to the JADE runtime
 		Runtime rt = Runtime.instance();
 
@@ -56,18 +56,20 @@ public class GlobalController {
 		HomeController homeController = new HomeController(HOME_AGENT_ADDRESS,CYCLE_TIME,rt,HOST,PORT,TRANSMISSION_AGENT_ADDRESS,BROKER_ADRESS);
 		try {
 			homeController.createTransmissionAgent();
-			homeController.createHomeAgent(API_URL);
+      homeController.createHomeAgent(API_URL);
 			homeController.createHomeAgent(API_URL); //This is an error but it should not crash, thanks to the controller
-			homeController.createAppliance("Appliance1");
-			homeController.createAppliance("Appliance2");
+			homeController.createAppliance("applianceAgent1");
+			homeController.createAppliance("applianceAgent2");
+			homeController.createGeneration("generationAgent1");
 		} catch (Exception e) {
 			log(e.toString());
 		}
 		
 		//Launch a broker and retailers
 		BrokerAgentController brokerAgentController = new BrokerAgentController(CYCLE_TIME, rt, HOST, PORT, BROKER_ADRESS);
-		brokerAgentController.createRetailerAgent("Retail Agent 1", "Retail Agent", "AGL");
-		brokerAgentController.createRetailerAgent("Retail Agent 2", "Retail Agent", "Origin");
+		brokerAgentController.createRetailerAgent("retailAgent1", "Retail Agent", "GloBird Energy","20.8");
+		brokerAgentController.createRetailerAgent("retailAgent2", "Retail Agent", "Origin","23.56");
+		brokerAgentController.createRetailerAgent("retailAgent3", "Retail Agent", "Pacific Hydro","16.1");
 		brokerAgentController.createBrokerAgent();
 //		brokerAgentController.createInitiatorAgent("Initiator Agent");
 		

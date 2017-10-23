@@ -7,6 +7,8 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.proto.AchieveREInitiator;
 import jade.domain.FIPANames;
+import jade.domain.FIPAAgentManagement.FailureException;
+
 import java.util.Date;
 
 import org.json.JSONObject;
@@ -37,11 +39,11 @@ public class TransmissionAgent  extends Agent {
 
 			@Override
 			public void action() {
-				ACLMessage msg= receive();
+				ACLMessage msg = receive();
 				//check if msgf and is the msg is a request (from home)
 				if (msg!=null) {
-					log("Received request from "+ msg.getSender().getLocalName()+" with status : "+ msg.getPerformative() +" : " + msg.getContent());
 					if (homeRequestTemplate.match(msg)) {
+						log("Received request from "+ msg.getSender().getLocalName()+" with status : "+ msg.getPerformative() +" : " + msg.getContent());
 						quantity = getRequestContent(msg).getInt("quantity");
 						// Create REQUEST message 
 						ACLMessage requestToBroker = new ACLMessage(ACLMessage.REQUEST);
@@ -77,6 +79,7 @@ public class TransmissionAgent  extends Agent {
 								JSONObject response = getRequestContent(inform);
 								log(inform.getSender().getLocalName() + " successfully performed the request: '" + curBrokerRequest);
 								log(inform.getSender().getLocalName() + " negotiated price of: '" + response.getDouble("price") + " c/kWh'");
+								log("Informing " + msg.getSender().getLocalName());
 								ACLMessage replyToHome = msg.createReply();
 								//The retzilers have agreed. send the info to home
 								replyToHome.setPerformative(ACLMessage.INFORM);
@@ -93,7 +96,6 @@ public class TransmissionAgent  extends Agent {
 								replyToHome.setPerformative(ACLMessage.REFUSE);
 								replyToHome.setContent(refuse.getContent());
 								send(replyToHome);
-
 							}
 
 							// Method to handle a failure message (failure in delivering the message)
@@ -102,7 +104,11 @@ public class TransmissionAgent  extends Agent {
 									// FAILURE notification from the JADE runtime: the receiver (receiver does not exist)
 									log("Responder does not exist");
 								} else {
-									log(failure.getSender().getLocalName() + " failed to perform the requested action");
+									log(failure.getSender().getLocalName() + " failed to perform the requested action.");
+									log("Informing " + msg.getSender().getLocalName());
+									ACLMessage replyToHome = msg.createReply();
+									replyToHome.setPerformative(ACLMessage.FAILURE);
+									send(replyToHome);
 								}
 							}
 						});
