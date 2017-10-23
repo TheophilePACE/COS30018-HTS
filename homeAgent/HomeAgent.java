@@ -18,18 +18,18 @@ import java.util.Vector;
 
 import org.json.*;
 
-public class HomeAgent extends Agent {
-	private long CYCLE_TIME;
-	private int time = 0 ; //from 0 to 23
+import apiWrapper.HttpClient;
 
+public class HomeAgent extends Agent {
+	private int CYCLE_TIME;
+	private long time = 0 ;
+	private String API_URL= "";
 	//Internal variables
 	private int energyBalance = 0; //sum of production and consumption of energy
 	private int energyProducted = 0;
 	private int energyConsumed = 0;
 
-	//Limits for dealing. Could be change by the user
-	private int maxBuyingPrice = 0;
-	private int minSellingPrice = 0;
+
 
 	//TODO Change at every cycle. Provided by the Broker
 	@SuppressWarnings("unused")
@@ -43,22 +43,36 @@ public class HomeAgent extends Agent {
 			MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST),
 			MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
 
+	private void updateSettings() {
+			HttpClient httpc = new HttpClient(API_URL);
+			try {
+				String settings = httpc.getSettings();
+				JSONObject jsonSettings = new JSONObject(settings);
+				CYCLE_TIME= (int) (jsonSettings.get("CYCLE_TIME"));
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+		}
+	}
+	
 	protected void setup() {
 		//FIPANames.InteractionProtocol.FIPA_REQUEST
 		Object[] args = getArguments();
 		if (args != null && args.length > 0) {
-			maxBuyingPrice= Integer.parseInt(args[0].toString());
-			minSellingPrice=Integer.parseInt(args[1].toString());
-			CYCLE_TIME=Long.parseLong(args[2].toString());
-			transmissionAgentAddress=args[3].toString();
-			log("I have been created. CUSTOM maxBuyingPrice is "+ maxBuyingPrice +" and minSellingPrice is "+ minSellingPrice);
-		} else {
-			log("I have been created. DEFAULT maxBuyingPrice is "+ maxBuyingPrice +" and minSellingPrice is "+ minSellingPrice);
-		}
+			API_URL= args[0].toString();
+			CYCLE_TIME=Integer.parseInt(args[1].toString());
+			transmissionAgentAddress=args[2].toString();
+		} 
 
 		TickerBehaviour triggerEnergyBalance = (new TickerBehaviour(this,CYCLE_TIME) {
 			public void onTick() {
-				time = (time+1)%24; //one hour more
+				updateSettings();
+				if(CYCLE_TIME!=(int)this.getPeriod())
+				{//CHANGE THE CYCLE TIME
+					log("Cycle time has been changed from "+this.getPeriod() + " to " + CYCLE_TIME);
+					this.reset(CYCLE_TIME);
+				}
+				time++; //one hour more
 				System.out.println();
 				log("<---------------- NEW CYCLE. Hour: "+ time +" ----------------->");
 				//Get all aplliances address
@@ -74,12 +88,12 @@ public class HomeAgent extends Agent {
 	private class collectApplianceEnergyBalances extends AchieveREInitiator {
 		private int nResponders =0;
 		private Agent a;
-		private int time ;
-		public collectApplianceEnergyBalances(Agent ag, ACLMessage consumptionRequest, int nbAppliances, int t) {
+		private long time ;
+		public collectApplianceEnergyBalances(Agent ag, ACLMessage consumptionRequest, int nbAppliances, long time2) {
 			super(ag, consumptionRequest);
 			a= ag;
 			nResponders = nbAppliances;
-			time = t;
+			time = time2;
 		}
 		private ACLMessage createTradeRequest(int quantity) {
 			
