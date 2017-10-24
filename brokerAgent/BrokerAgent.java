@@ -62,32 +62,6 @@ public class BrokerAgent extends Agent {
 			httpClient = new HttpClient(API_URL);
 		}
 		
-		// Search for available retail agents
-		DFAgentDescription dfd = new DFAgentDescription();
-		ServiceDescription sd = new ServiceDescription();
-		sd.setType("Retail Agent");
-		dfd.addServices(sd);
-		
-		// Wait 1s to ensure retail agents have started properly
-		doWait(1000);
-		
-		
-		// Create and print list of retail agents found
-		try {
-			DFAgentDescription[] result = DFService.search(this, dfd); 
-			log("Found the following retail agents:");
-			retailAgents = new AID[result.length];
-			for (int i = 0; i < result.length; ++i) {
-				retailAgents[i] = result[i].getName();
-				log(retailAgents[i].getLocalName());
-			}
-		}
-		catch (FIPAException fe) {
-			fe.printStackTrace();
-		}
-		
-		repliesCnt = retailAgents.length;
-		
 		// Message template to listen only for messages matching the correct interaction protocol and performative
 		MessageTemplate template = MessageTemplate.and(
 				MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST),
@@ -99,6 +73,9 @@ public class BrokerAgent extends Agent {
 			protected ACLMessage handleRequest(ACLMessage request) throws NotUnderstoodException, RefuseException {
 				log("Broker request received from " + request.getSender().getLocalName() + ". Request is: '" + request.getContent() + "'");
 				brokeredDeal = null;
+				
+				retailAgents = getAgentDescriptionList("Retail Agent");
+				repliesCnt = retailAgents.length;
 				
 				// Refuse request if no retail agents are found
 				if (retailAgents != null) {
@@ -348,6 +325,30 @@ public class BrokerAgent extends Agent {
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}
+	}
+	
+	private AID[] getAgentDescriptionList(String serviceType) {
+		// Search for agents
+		DFAgentDescription dfd = new DFAgentDescription();
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType(serviceType);
+		dfd.addServices(sd);
+
+		// Create and print list of agents found
+		try {
+			DFAgentDescription[] result = DFService.search(this, dfd); 
+			log("Found the following " + serviceType + " agents:");
+			AID[] agentsFound = new AID[result.length];
+			for (int i = 0; i < result.length; ++i) {
+				agentsFound[i] = result[i].getName();
+				log(agentsFound[i].getLocalName());
+			}
+			return agentsFound;
+		}
+		catch (FIPAException fe) {
+			fe.printStackTrace();
+			return null;
 		}
 	}
 	
