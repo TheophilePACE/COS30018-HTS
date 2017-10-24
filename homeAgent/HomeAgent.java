@@ -59,12 +59,12 @@ public class HomeAgent extends Agent {
 
 		TickerBehaviour triggerEnergyBalance = (new TickerBehaviour(this,CYCLE_TIME) {
 			public void onTick() {
-				/*updateSettings();								******UNCOMMENT FOR API SETTINGS*********
+				updateSettings();
 				if(CYCLE_TIME!=(int)this.getPeriod())
 				{//CHANGE THE CYCLE TIME
 					log("Cycle time has been changed from "+this.getPeriod() + " to " + CYCLE_TIME);
 					this.reset(CYCLE_TIME);
-				}*/
+				}
 				time++; //one hour more
 				System.out.println();
 				log("<---------------- || NEW CYCLE || Time: "+ time +" || CYCLE_TIME: " + CYCLE_TIME + " || ----------------->");
@@ -162,7 +162,7 @@ public class HomeAgent extends Agent {
 			JSONObject response = new JSONObject(inform.getContent());
 			log(inform.getSender().getLocalName() + " successfully performed the request: '" + tR.getContent()
 			+ " negotiated price of: '" + response.getDouble("price") + " c/kWh'");
-			//storeNegotiatedPrice(response.getString("retailerId"),response.getDouble("price"));
+			storeNegotiatedPrice(response.getString("retailerId"),response.getDouble("price"), response.getDouble("quantity"));
 			log("<----------------- || END OF NEGOTIATION || SUCCESS || ---------------------->");
 			System.out.println();
 			System.out.println();
@@ -212,7 +212,7 @@ public class HomeAgent extends Agent {
 				energyConsumed+=v;
 			else
 				energyProducted+=v;
-			//storeApplianceEnergyBalance(k, v); //Store old value
+			storeApplianceEnergyBalance(k, v); //Store old value
 		});
 		applianceEnergyBalance.clear(); // remove old values
 
@@ -268,11 +268,12 @@ public class HomeAgent extends Agent {
 		}
 	}
 	
-	private void storeNegotiatedPrice(String retailerId,double price) {
+	private void storeNegotiatedPrice(String retailerId,double price, double quantity) {
 		JSONObject jsonPrice = new JSONObject();
 		jsonPrice.put("price", price);
 		jsonPrice.put("time", this.time);
 		jsonPrice.put("retailerId", retailerId);
+		jsonPrice.put("quantity", quantity);
 		try {
 			String requestResult = httpc.sendPrice(jsonPrice.toString());
 			log("Stored in db : "+ jsonPrice.toString() +"Result : " + requestResult);

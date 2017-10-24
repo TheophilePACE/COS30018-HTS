@@ -110,7 +110,7 @@ public class BrokerAgent extends Agent {
 					quantity = req.getInt("quantity");
 					
 					//update the roundLimit
-					//updateSettings();                  ******UNCOMMENT FOR API SETTINGS*********
+					updateSettings();                  //******UNCOMMENT FOR API SETTINGS*********
 					round = 1;
 					end = false;
 					
