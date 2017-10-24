@@ -33,7 +33,7 @@ import apiWrapper.HttpClient;
 public class BrokerAgent extends Agent {
 	private String requestType;		// The type of request for the broker to perform (buy/sell)
 	private String brokeredDeal;	// The deal and price achieved by the broker agent
-	private int quantity;			// The number of units requested
+	private double quantity;			// The number of units requested
 	private AID[] retailAgents; 	// The list of known retail agents
 	
 	//Limits for dealing. 
@@ -108,7 +108,7 @@ public class BrokerAgent extends Agent {
 					// Get request type value
 					requestType = req.getString("requestType");
 					// Get quantity value
-					quantity = req.getInt("quantity");
+					quantity = req.getDouble("quantity");
 					
 					//update the roundLimit, the min price and the max buy
 					updateSettings();                  //******UNCOMMENT FOR API SETTINGS*********

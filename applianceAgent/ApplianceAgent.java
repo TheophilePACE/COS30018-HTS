@@ -73,7 +73,7 @@ public class ApplianceAgent extends Agent {
 		httpClient = new HttpClient(API_URL);
 		
 		registerService(serviceType, serviceName);
-		log("created: "+serviceName+" -> "+serviceName);
+		log("created: "+serviceType+" -> "+serviceName);
 
 		//tmplate for a Message type resuest from the homeagent
 		energyBalanceMessageTemplate = MessageTemplate.and( MessageTemplate.and(
@@ -93,7 +93,7 @@ public class ApplianceAgent extends Agent {
 				log("Sending consumption data with settings : yearlyCOnsumption: "+ yearlyConsumption+" , consumptionGearing : " + consumptionGearing);
 				ACLMessage consumptionMessageResponse = request.createReply();
 				consumptionMessageResponse.setPerformative(ACLMessage.INFORM);
-				String contentJSON = "{'consumption':" + getConsumption() +",unit:'kWh'}";
+				String contentJSON = "{'consumption':" + getConsumption() +",'unit':'kWh','consumptionType':'"+consumptionType+"'}";
 				consumptionMessageResponse.setContent(contentJSON); 
 				return consumptionMessageResponse;
 			}

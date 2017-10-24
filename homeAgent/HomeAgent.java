@@ -59,12 +59,12 @@ public class HomeAgent extends Agent {
 
 		TickerBehaviour triggerEnergyBalance = (new TickerBehaviour(this,CYCLE_TIME) {
 			public void onTick() {
-				/*updateSettings();								******UNCOMMENT FOR API SETTINGS*********
+				updateSettings();								
 				if(CYCLE_TIME!=(int)this.getPeriod())
 				{//CHANGE THE CYCLE TIME
 					log("Cycle time has been changed from "+this.getPeriod() + " to " + CYCLE_TIME);
 					this.reset(CYCLE_TIME);
-				}*/
+				}
 				time++; //one hour more
 				System.out.println();
 				log("<---------------- || NEW CYCLE || Time: "+ time +" || CYCLE_TIME: " + CYCLE_TIME + " || ----------------->");
@@ -110,6 +110,8 @@ public class HomeAgent extends Agent {
 			JSONObject JSONmsg = new JSONObject(inform.getContent());
 			log("Received consumption from " + inform.getSender().getLocalName() + ". Consumption is: " + JSONmsg.getDouble("consumption"));		
 			setApplianceEnergyBalance(inform.getSender().getLocalName(), new Double(JSONmsg.getDouble("consumption")));
+			storeApplianceEnergyBalance(inform.getSender().getLocalName(), JSONmsg.getDouble("consumption"), JSONmsg.getString("consumptionType")); //Store old value
+
 			nResponders--;
 		}
 		protected void handleFailure(ACLMessage failure) {
@@ -162,7 +164,7 @@ public class HomeAgent extends Agent {
 			JSONObject response = new JSONObject(inform.getContent());
 			log(inform.getSender().getLocalName() + " successfully performed the request: '" + tR.getContent()
 			+ " negotiated price of: '" + response.getDouble("price") + " c/kWh'");
-			//storeNegotiatedPrice(response.getString("retailerId"),response.getDouble("price"));
+			storeNegotiatedPrice(response.getString("retailerId"),response.getDouble("price"), response.getDouble("quantity"));
 			log("<----------------- || END OF NEGOTIATION || SUCCESS || ---------------------->");
 			System.out.println();
 			System.out.println();
@@ -212,7 +214,6 @@ public class HomeAgent extends Agent {
 				energyConsumed+=v;
 			else
 				energyProducted+=v;
-			//storeApplianceEnergyBalance(k, v); //Store old value
 		});
 		applianceEnergyBalance.clear(); // remove old values
 
@@ -254,11 +255,12 @@ public class HomeAgent extends Agent {
 			e.printStackTrace();
 		}
 	}
-	private void storeApplianceEnergyBalance(String applianceName,int balance) {
+	private void storeApplianceEnergyBalance(String applianceName,double balance,String consumptionType) {
 		JSONObject jsonEnergyBalance = new JSONObject();
 		jsonEnergyBalance.put("applianceId", applianceName);
 		jsonEnergyBalance.put("time", this.time);
 		jsonEnergyBalance.put("quantity", balance);
+		jsonEnergyBalance.put("consumptionType", consumptionType);
 		try {
 			String requestResult = httpc.sendConsumption(jsonEnergyBalance.toString());
 			log("Stored in db : "+ jsonEnergyBalance.toString() +"Result : " + requestResult);
@@ -270,9 +272,11 @@ public class HomeAgent extends Agent {
 
 	private void storeNegotiatedPrice(String retailerId,double price, double quantity) {
 		JSONObject jsonPrice = new JSONObject();
+		quantity = round(quantity, 3);
 		jsonPrice.put("price", price);
 		jsonPrice.put("time", this.time);
 		jsonPrice.put("retailerId", retailerId);
+		jsonPrice.put("quantity", quantity);
 		try {
 			String requestResult = httpc.sendPrice(jsonPrice.toString());
 			log("Stored in db : "+ jsonPrice.toString() +"Result : " + requestResult);
@@ -281,7 +285,10 @@ public class HomeAgent extends Agent {
 			e.printStackTrace();
 		}
 	}
-
+	private static double round (double value, int precision) {
+	    int scale = (int) Math.pow(10, precision);
+	    return (double) Math.round(value * scale) / scale;
+	}
 	private String log(String s) {
 		String toPrint = "[" + getLocalName() + "] " + s;
 		System.out.println(toPrint);

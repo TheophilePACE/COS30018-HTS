@@ -91,7 +91,7 @@ public class GenerationAgent extends Agent {
 				log("Sending generation data with settings : generationCapacity =" + generationCapacity);
 				ACLMessage productionMessageResponse = request.createReply();
 				productionMessageResponse.setPerformative(ACLMessage.INFORM);
-				String contentJSON = "{'consumption':" + getProduction() +",unit:'kWh'}";
+				String contentJSON = "{'consumption':" + getProduction() +",unit:'kWh','consumptionType':'PV_generation'}";
 				productionMessageResponse.setContent(contentJSON); //TODO REFACTOR OUT OF BEHAVIOUR
 				return productionMessageResponse;
 			}
