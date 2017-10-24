@@ -32,22 +32,26 @@ public class ApplianceAgent extends Agent {
 	
 	//To do: needs input about yearly consumption, and ratio of base vs. fluctuating load from GUI SETTINGS
 	private double getConsumption() {
-		double ratio = 10; //dummy value
-		double yearly_consumption = 5000; //dummy value
+		double consumptionGearing = 0.64; //dummy value
+		double yearlyConsumption = 5000; //dummy value
 		double [] consumption_pattern = null; //initialize consumption array
 		
+		if (consumptionType == "base_load") // sets the consumptionGearing for the base load appliance (opposite of fluctuating appliance as it sums up to 100%)
+			consumptionGearing = 1-consumptionGearing;
+		
 		try {
-			consumption_pattern = readCSVData("base_load"); //dummy value 
+			consumption_pattern = readCSVData(consumptionType); //dummy value 
 		} catch (Exception e) {
 			System.out.println("CSV read in unsuccessful");
 			e.printStackTrace();
 		}
-		double consumption_hourly = consumption_pattern[timeStep] * ratio * yearly_consumption;
+		double consumption_hourly = consumption_pattern[timeStep - (int) (timeStep/168)*168] * consumptionGearing * yearlyConsumption; // calculates the hourly consumption depending on the hour of the week (max 168h), restarts at hour 0 if second week starts
 		return consumption_hourly; 
 	}
 	private String HOME_AGENT_ADDRESS;
 	private String serviceType;
 	private String serviceName;
+	private String consumptionType;
 	private int timeStep;
 	private MessageTemplate energyBalanceMessageTemplate;
 
@@ -59,6 +63,7 @@ public class ApplianceAgent extends Agent {
 		HOME_AGENT_ADDRESS = args[0].toString();
 		serviceType = args[1].toString();
 		serviceName = args[2].toString();
+		consumptionType = args[3].toString();
 		
 		registerService(serviceType, serviceName);
 		log("created: "+serviceName+" -> "+serviceName);
@@ -92,6 +97,7 @@ public class ApplianceAgent extends Agent {
 				return inform;
 			}
 		});
+		
 		log("Waiting for consumption requests...");
 	}
 	
@@ -129,7 +135,7 @@ public class ApplianceAgent extends Agent {
 	//Method to retrieve consumption data from CSV file
 	private static double [] readCSVData(String target) throws Exception{
 		final String CSV_FILENAME = "src/Total_Data.csv"; 
-		double [] data = new double [168];
+		double [] data = new double [168]; // array length equals to number of hours of 7days (24h * 7d)
 		ICsvMapReader mapReader = null;
 		try {
 			mapReader = new CsvMapReader(new FileReader(CSV_FILENAME), CsvPreference.STANDARD_PREFERENCE);

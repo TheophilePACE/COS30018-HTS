@@ -45,7 +45,7 @@ public class GenerationAgent extends Agent {
 			System.out.println("CSV read in unsuccessful");
 			e.printStackTrace();
 		}
-		double production_hourly = productionPattern[timeStep] * installedCapacity;
+		double production_hourly = productionPattern[timeStep - (int) (timeStep/168)*168] * installedCapacity;
 		return production_hourly * -1; 
 	}
 	private String HOME_AGENT_ADDRESS;
