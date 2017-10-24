@@ -27,13 +27,18 @@ import org.supercsv.cellprocessor.ift.*;
 import org.supercsv.io.*;
 import org.supercsv.prefs.*;
 
+import apiWrapper.HttpClient;
+
 @SuppressWarnings("serial")
 public class ApplianceAgent extends Agent {
+	double consumptionGearing = 0.64; 
+	double yearlyConsumption = 5000; 
+	private HttpClient httpClient;
+	private String API_URL;
+
 	
 	//To do: needs input about yearly consumption, and ratio of base vs. fluctuating load from GUI SETTINGS
 	private double getConsumption() {
-		double consumptionGearing = 0.64; //dummy value
-		double yearlyConsumption = 5000; //dummy value
 		double [] consumption_pattern = null; //initialize consumption array
 		
 		if (consumptionType == "base_load") // sets the consumptionGearing for the base load appliance (opposite of fluctuating appliance as it sums up to 100%)
@@ -63,7 +68,9 @@ public class ApplianceAgent extends Agent {
 		HOME_AGENT_ADDRESS = args[0].toString();
 		serviceType = args[1].toString();
 		serviceName = args[2].toString();
-		consumptionType = args[3].toString();
+		API_URL= args[3].toString();
+		consumptionType = args[4].toString();
+		httpClient = new HttpClient(API_URL);
 		
 		registerService(serviceType, serviceName);
 		log("created: "+serviceName+" -> "+serviceName);
@@ -80,9 +87,10 @@ public class ApplianceAgent extends Agent {
 			protected ACLMessage handleRequest(ACLMessage request) throws NotUnderstoodException, RefuseException {
 				log("Request received from "+request.getSender().getLocalName()+". Request is "+request.getContent());
 				// get current time step
+				updateSettings();
 				JSONObject req = getRequestContent(request);
 				timeStep = req.getInt("time");
-				log("Sending consumption data");
+				log("Sending consumption data with settings : yearlyCOnsumption: "+ yearlyConsumption+" , consumptionGearing : " + consumptionGearing);
 				ACLMessage consumptionMessageResponse = request.createReply();
 				consumptionMessageResponse.setPerformative(ACLMessage.INFORM);
 				String contentJSON = "{'consumption':" + getConsumption() +",unit:'kWh'}";
@@ -168,5 +176,17 @@ public class ApplianceAgent extends Agent {
 				new ParseDouble() //relative PV production
 		};
 		return processors;
-	}	
+	}
+	
+	private void updateSettings() {
+		try {
+			String settings = httpClient.getSettings();
+			JSONObject jsonSettings = new JSONObject(settings);
+			 consumptionGearing =  (jsonSettings.getDouble("consumptionGearing")); 
+			 yearlyConsumption =  (jsonSettings.getDouble("yearlyConsumption"));
+			} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 }

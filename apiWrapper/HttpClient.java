@@ -36,7 +36,6 @@ public class HttpClient {
 	    conn.disconnect();
 
 	    return result;
-
 	}
 	private String sendGet(String urlStr) throws Exception {
 

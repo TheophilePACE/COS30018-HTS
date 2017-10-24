@@ -57,8 +57,8 @@ public class GlobalController {
 		HomeController homeController = new HomeController(HOME_AGENT_ADDRESS,CYCLE_TIME,rt,HOST,PORT,BROKER_AGENT_ADDRESS);
 		try {
 			homeController.createHomeAgent(API_URL);
-			homeController.createAppliance("applianceAgent1","base_load");
-			homeController.createAppliance("applianceAgent2","fluctutating_load");
+			homeController.createAppliance("applianceAgent1",API_URL,"base_load");
+			homeController.createAppliance("applianceAgent2",API_URL,"fluctutating_load");
 			homeController.createGeneration("generationAgent1");
 		} catch (Exception e) {
 			log(e.toString());

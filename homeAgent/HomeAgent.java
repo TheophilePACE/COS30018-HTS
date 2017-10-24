@@ -46,7 +46,7 @@ public class HomeAgent extends Agent {
 	private MessageTemplate energyBalanceMessageTemplate = MessageTemplate.and(
 			MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST),
 			MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
-	
+
 	protected void setup() {
 		//FIPANames.InteractionProtocol.FIPA_REQUEST
 		Object[] args = getArguments();
@@ -79,7 +79,7 @@ public class HomeAgent extends Agent {
 		});
 		addBehaviour(triggerEnergyBalance);
 	}
-	
+
 	private class collectApplianceEnergyBalances extends AchieveREInitiator {
 		private int nResponders =0;
 		private Agent a;
@@ -132,7 +132,7 @@ public class HomeAgent extends Agent {
 			}
 			double quantity =  makeEnergyBalance();
 			log("Consumption: " + energyConsumed + " Generation: " + energyProducted * -1 + " --> BALANCE = " + quantity);
-			
+
 			if (quantity != 0)
 			{
 				ACLMessage tradeRequest = createTradeRequest(quantity);
@@ -143,9 +143,9 @@ public class HomeAgent extends Agent {
 				log("Perfect balance. No action required!");
 			}
 		}
-		
+
 	} 
-	
+
 	private class Negotiation extends AchieveREInitiator{
 		private ACLMessage tR;
 		public Negotiation(Agent a, ACLMessage tRM) {
@@ -252,8 +252,8 @@ public class HomeAgent extends Agent {
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}
 	}
-}
 	private void storeApplianceEnergyBalance(String applianceName,int balance) {
 		JSONObject jsonEnergyBalance = new JSONObject();
 		jsonEnergyBalance.put("applianceId", applianceName);
@@ -267,8 +267,8 @@ public class HomeAgent extends Agent {
 			e.printStackTrace();
 		}
 	}
-	
-	private void storeNegotiatedPrice(String retailerId,double price) {
+
+	private void storeNegotiatedPrice(String retailerId,double price, double quantity) {
 		JSONObject jsonPrice = new JSONObject();
 		jsonPrice.put("price", price);
 		jsonPrice.put("time", this.time);

@@ -36,7 +36,7 @@ public class GenerationAgent extends Agent {
 	
 	//TODO: needs input about yearly consumption, and ratio of base vs. fluctuating load from GUI SETTINGS
 	private double getProduction() {
-		double installedCapacity = 2.5; //dummy value
+		double installedCapacity = 20; //dummy value SETTINGS TO BE FETCHED
 		double [] productionPattern = null; //initialize consumption array
 		
 		try {

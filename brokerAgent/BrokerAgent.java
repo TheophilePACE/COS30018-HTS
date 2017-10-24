@@ -36,7 +36,7 @@ public class BrokerAgent extends Agent {
 	private int quantity;			// The number of units requested
 	private AID[] retailAgents; 	// The list of known retail agents
 	
-	//Limits for dealing. NEED TO DETERMINE HOW THESE ARE SET / UPDATED
+	//Limits for dealing. 
 	private int maxBuyingPrice = 6;
 	private int minSellingPrice = 20;
 	
@@ -70,6 +70,7 @@ public class BrokerAgent extends Agent {
 		
 		// Wait 1s to ensure retail agents have started properly
 		doWait(1000);
+		
 		
 		// Create and print list of retail agents found
 		try {
@@ -109,7 +110,7 @@ public class BrokerAgent extends Agent {
 					// Get quantity value
 					quantity = req.getInt("quantity");
 					
-					//update the roundLimit
+					//update the roundLimit, the min price and the max buy
 					updateSettings();                  //******UNCOMMENT FOR API SETTINGS*********
 					round = 1;
 					end = false;
@@ -342,6 +343,8 @@ public class BrokerAgent extends Agent {
 			String settings = httpClient.getSettings();
 			JSONObject jsonSettings = new JSONObject(settings);
 			roundLimit= (int) (jsonSettings.get("roundsLimit"));
+			minSellingPrice = (int) (jsonSettings.get("minSellingPrice"));
+			maxBuyingPrice = (int) (jsonSettings.get("maxBuyingPrice"));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

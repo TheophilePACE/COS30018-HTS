@@ -30,12 +30,13 @@ public class HomeController {
 		log("The homeContainer was created!");
 		homeAgent =null;
 	} 
-	private AgentController makeCreateAppliance(String agentName, String homeAgentAddress, ContainerController containerController, String serviceType, String serviceName, String consumptionType) {
-		Object[] appArgs = new Object[4];
+	private AgentController makeCreateAppliance(String agentName, String homeAgentAddress, ContainerController containerController, String serviceType, String serviceName, String API_URL, String consumptionType) {
+		Object[] appArgs = new Object[5];
 		appArgs[0] = homeAgentAddress;
 		appArgs[1] = serviceType;
 		appArgs[2] = serviceName;
-		appArgs[3] = consumptionType;
+		appArgs[3] = API_URL;
+		appArgs[4] = consumptionType;
 		try {
 			AgentController applianceCtrl = containerController.createNewAgent(agentName, ApplianceAgent.class.getName(), appArgs);
 			applianceCtrl.start();
@@ -45,8 +46,8 @@ public class HomeController {
 			return null;
 		}
 	}
-	public AgentController createAppliance(String agentName, String consumptionType) {
-		return makeCreateAppliance(agentName, HOME_AGENT_ADDRESS, homeContainer, "Appliance", agentName, consumptionType);
+	public AgentController createAppliance(String agentName, String API_URL, String consumptionType) {
+		return makeCreateAppliance(agentName, HOME_AGENT_ADDRESS, homeContainer, "Appliance", agentName, API_URL,consumptionType);
 	}
 
 	private AgentController makeCreateGeneration(String agentName, String homeAgentAddress, ContainerController containerController, String serviceType, String serviceName) {
