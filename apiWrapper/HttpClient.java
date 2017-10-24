@@ -9,8 +9,12 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
+
 public class HttpClient {
 	private String API_URL;
+	private JSONObject jsonDefaultSettings = new JSONObject("{'API_URL': 'http://localhost:3001/api','JADE_PORT': 1099,'CYCLE_TIME': 20000,'yearlyConsumption': 4026.1,'consumptionGearing': 0.64,'generationCapacity': 2.5,'roundsLimit': 25,'maxBuyingPrice': 8,'minSellingPrice': 15}");
+	private boolean useApi = true;
 	private String sendPost(String urlStr, String dataJSON) throws Exception {
 	    URL url = new URL(urlStr);
 	    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -54,12 +58,16 @@ public class HttpClient {
 	}
 
 	public String sendConsumption(String dataJSON) throws Exception {
+		if(!useApi) return "";
 	    return sendPost(this.API_URL+"/consumptions", dataJSON);
 	}
 	public String sendPrice(String dataJSON) throws Exception {
+		if(!useApi) return "";
 	    return sendPost(this.API_URL+"/prices", dataJSON);
 	}
 	public String getSettings() throws Exception {
+		if(!useApi) return jsonDefaultSettings.toString();
+
 		return sendGet(this.API_URL+"/settings");
 	}
 	
