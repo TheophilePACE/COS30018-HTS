@@ -69,6 +69,10 @@ public class HttpClient {
 
 		return sendGet(this.API_URL+"/settings");
 	}
+	public String resetMongoDB() throws Exception {
+		if(!useApi) return "";
+	    return sendGet(this.API_URL+"/resetDB");
+	}
 	
 	public HttpClient(String apiUrl) {
 		this.API_URL=apiUrl;
