@@ -1,4 +1,4 @@
-hour,base_load,fluctutating_load,PV_generation
+hour,base_load,fluctuating_load,PV_generation
 0,0.000114155,2.03E-05,0
 1,0.000114155,6.59E-06,0
 2,0.000114155,6.14E-07,0
