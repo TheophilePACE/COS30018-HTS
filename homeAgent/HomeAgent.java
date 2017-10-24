@@ -30,9 +30,9 @@ public class HomeAgent extends Agent {
 	private long time = 0 ;
 	private String API_URL= "";
 	//Internal variables
-	private int energyBalance = 0; //sum of production and consumption of energy
-	private int energyProducted = 0;
-	private int energyConsumed = 0;
+	private double energyBalance = 0; //sum of production and consumption of energy
+	private double energyProducted = 0;
+	private double energyConsumed = 0;
 
 	//TODO Change at every cycle. Provided by the Broker
 	@SuppressWarnings("unused")
@@ -40,7 +40,7 @@ public class HomeAgent extends Agent {
 	@SuppressWarnings("unused")
 	private String BetterProvider = "";
 	private String brokerAgentAddress = "";
-	private HashMap<String, Integer> applianceEnergyBalance = new HashMap<String, Integer>();
+	private HashMap<String, Double> applianceEnergyBalance = new HashMap<String, Double>();
 	private AID[] applianceList, generationList;
 	HttpClient httpc;
 	private MessageTemplate energyBalanceMessageTemplate = MessageTemplate.and(
@@ -59,12 +59,12 @@ public class HomeAgent extends Agent {
 
 		TickerBehaviour triggerEnergyBalance = (new TickerBehaviour(this,CYCLE_TIME) {
 			public void onTick() {
-				updateSettings();
+				/*updateSettings();								******UNCOMMENT FOR API SETTINGS*********
 				if(CYCLE_TIME!=(int)this.getPeriod())
 				{//CHANGE THE CYCLE TIME
 					log("Cycle time has been changed from "+this.getPeriod() + " to " + CYCLE_TIME);
 					this.reset(CYCLE_TIME);
-				}
+				}*/
 				time++; //one hour more
 				System.out.println();
 				log("<---------------- || NEW CYCLE || Time: "+ time +" || CYCLE_TIME: " + CYCLE_TIME + " || ----------------->");
@@ -89,7 +89,7 @@ public class HomeAgent extends Agent {
 			nResponders = nbAppliances;
 			log("Sending consumption requests");
 		}
-		private ACLMessage createTradeRequest(int quantity) {
+		private ACLMessage createTradeRequest(double quantity) {
 			
 			ACLMessage tradeRequest = new ACLMessage(ACLMessage.REQUEST);
 			// Add receivers from input args
@@ -108,8 +108,8 @@ public class HomeAgent extends Agent {
 		protected void handleInform(ACLMessage inform) {
 			//Received the expected information
 			JSONObject JSONmsg = new JSONObject(inform.getContent());
-			log("Received consumption from " + inform.getSender().getLocalName() + ". Consumption is: " + JSONmsg.getInt("consumption"));		
-			setApplianceEnergyBalance(inform.getSender().getLocalName(), new Integer(JSONmsg.getInt("consumption")));
+			log("Received consumption from " + inform.getSender().getLocalName() + ". Consumption is: " + JSONmsg.getDouble("consumption"));		
+			setApplianceEnergyBalance(inform.getSender().getLocalName(), new Double(JSONmsg.getDouble("consumption")));
 			nResponders--;
 		}
 		protected void handleFailure(ACLMessage failure) {
@@ -130,7 +130,7 @@ public class HomeAgent extends Agent {
 			} else {
 				log("Received all consumption respones.");
 			}
-			int quantity =  makeEnergyBalance();
+			double quantity =  makeEnergyBalance();
 			log("Consumption: " + energyConsumed + " Generation: " + energyProducted * -1 + " --> BALANCE = " + quantity);
 			
 			if (quantity != 0)
@@ -162,7 +162,7 @@ public class HomeAgent extends Agent {
 			JSONObject response = new JSONObject(inform.getContent());
 			log(inform.getSender().getLocalName() + " successfully performed the request: '" + tR.getContent()
 			+ " negotiated price of: '" + response.getDouble("price") + " c/kWh'");
-			storeNegotiatedPrice(response.getString("retailerId"),response.getDouble("price"), response.getDouble("quantity"));
+			//storeNegotiatedPrice(response.getString("retailerId"),response.getDouble("price"));
 			log("<----------------- || END OF NEGOTIATION || SUCCESS || ---------------------->");
 			System.out.println();
 			System.out.println();
@@ -199,11 +199,11 @@ public class HomeAgent extends Agent {
 		return msg;
 	}
 
-	private void setApplianceEnergyBalance(String applianceName, Integer balance) {
+	private void setApplianceEnergyBalance(String applianceName, Double balance) {
 		applianceEnergyBalance.put(applianceName, balance);
 	}
 	//TODO consider positive negative ...
-	private int makeEnergyBalance() {
+	private double makeEnergyBalance() {
 		energyConsumed = 0;
 		energyProducted = 0;
 
@@ -212,7 +212,7 @@ public class HomeAgent extends Agent {
 				energyConsumed+=v;
 			else
 				energyProducted+=v;
-			storeApplianceEnergyBalance(k, v); //Store old value
+			//storeApplianceEnergyBalance(k, v); //Store old value
 		});
 		applianceEnergyBalance.clear(); // remove old values
 
@@ -268,12 +268,11 @@ public class HomeAgent extends Agent {
 		}
 	}
 	
-	private void storeNegotiatedPrice(String retailerId,double price, double quantity) {
+	private void storeNegotiatedPrice(String retailerId,double price) {
 		JSONObject jsonPrice = new JSONObject();
 		jsonPrice.put("price", price);
 		jsonPrice.put("time", this.time);
 		jsonPrice.put("retailerId", retailerId);
-		jsonPrice.put("quantity", quantity);
 		try {
 			String requestResult = httpc.sendPrice(jsonPrice.toString());
 			log("Stored in db : "+ jsonPrice.toString() +"Result : " + requestResult);
