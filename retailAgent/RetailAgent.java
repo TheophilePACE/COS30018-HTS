@@ -82,90 +82,75 @@ public class RetailAgent extends Agent {
 						round = req.getInt("round");
 						end = req.getBoolean("end");
 
-						if(round == 1) {
+						if(round == 1) 
+						{
 							if (checkStrategy()) 
 								negotiationStrategy = 0;
 							else
 								negotiationStrategy = 1;
-						}else
+						}
+						else
 						{
 							negotiationStrategy = currentStrategy;
 						}
+						
+						log("Price request received from " + cfp.getSender().getLocalName() + ". Request is " + cfp.getContent());
 
-						if (checkAction())
-						{
-							switch (round) {
-							case 1:
-								log("Price request received from " + cfp.getSender().getLocalName() + ". Request is " + cfp.getContent());		
-
+						switch (round) {
+						case 1:
+							if (checkAction())
+							{
 								// Reply with the price offer based on request type
 								if (requestType.equals("Buy")) // The broker wants to buy
 									currentOffer = initialOffer;
 								else // The broker wants to sell
 									currentOffer = getBuyPrice(round);
 								currentStrategy = negotiationStrategy;
-								break;
-							default:														
-								if (requestType.equals("Buy"))
+							}
+							else 
+							{
+								// We refuse to provide a proposal
+								log("Cannot negotiate at this time");
+								currentStrategy = negotiationStrategy;
+								throw new RefuseException("evaluation-failed");
+							}
+							break;
+						default:														
+							if (requestType.equals("Buy"))
+							{
+								if (end == false)
 								{
-									if (end == false)
-									{
-										if (currentOffer == 0)
-										{
-											log("We have yet to provide an offer. Current round is: " + round);
-											currentOffer = getSellPrice(round);
-										}										
-										else
-										{
-											currentOffer = getSellPrice(round);
-											log(cfp.getSender().getLocalName() + " wants a better offer. Current round is: " + round + ". Current offer is: " + currentOffer);
-										}										
-									}
-									else 
-									{
-										currentOffer = initialOffer;
-									}
+
+									currentOffer = getSellPrice(round);
+									log(cfp.getSender().getLocalName() + " wants a better offer. Current round is: " + round + ". Current offer is: " + currentOffer);
+									
+								}
+								else 
+								{
+									currentOffer = initialOffer;
+								}
+							}
+							else
+							{
+								if (end == false)
+								{
+									currentOffer = getBuyPrice(round);
+									log(cfp.getSender().getLocalName() + " wants a better offer. Current round is: " + round + ". Current offer is: " + currentOffer);
 								}
 								else
 								{
-									if (end == false)
-									{
-										if (currentOffer == 0)
-										{
-											log("We have yet to provide an offer. Current round is: " + round);
-											currentOffer = getBuyPrice(round);
-										}										
-										else
-										{
-											currentOffer = getBuyPrice(round);
-											log(cfp.getSender().getLocalName() + " wants a better offer. Current round is: " + round + ". Current offer is: " + currentOffer);
-
-										}
-									}
-									else
-									{
-										currentOffer = getBuyPrice(0);
-									}
+									currentOffer = getBuyPrice(0);
 								}
-
-								break; 
-
 							}
+							break;
+						}
 
-							log("Offering price: '" + currentOffer + " c/kWh'");
-							String contentJSON = "{'price':" + currentOffer + "}";
-							ACLMessage propose = cfp.createReply();
-							propose.setPerformative(ACLMessage.PROPOSE);
-							propose.setContent(contentJSON);
-							return propose;
-						}
-						else 
-						{
-							// We refuse to provide a proposal
-							log("Cannot provide an offer at this time");
-							currentStrategy = negotiationStrategy;
-							throw new RefuseException("evaluation-failed");
-						}
+						log("Offering price: '" + currentOffer + " c/kWh'");
+						String contentJSON = "{'price':" + currentOffer + "}";
+						ACLMessage propose = cfp.createReply();
+						propose.setPerformative(ACLMessage.PROPOSE);
+						propose.setContent(contentJSON);
+						return propose;	
 					}
 
 					@Override
@@ -178,18 +163,12 @@ public class RetailAgent extends Agent {
 						inform.setPerformative(ACLMessage.INFORM);
 						String contentJSON = "{'price':" + currentOffer + "}";
 						inform.setContent(contentJSON);
-						currentOffer = 0;
 						successfulNegotiation = true;
 						return inform;	
 					}
 
 					protected void handleRejectProposal(ACLMessage cfp, ACLMessage propose, ACLMessage reject) {
 						log("Proposal rejected");
-					}
-
-					public int onEnd() {
-						currentOffer = 0;						
-						return 0;
 					}
 				};
 			}
@@ -246,7 +225,8 @@ public class RetailAgent extends Agent {
 		if (successfulNegotiation == true) {
 			successfulNegotiation = false;
 			return true;
-		}else {
+		}
+		else {
 			return false;
 		}
 	}

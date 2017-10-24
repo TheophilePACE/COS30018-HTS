@@ -36,8 +36,6 @@ public class ApplianceAgent extends Agent {
 	private HttpClient httpClient;
 	private String API_URL;
 
-	
-	//To do: needs input about yearly consumption, and ratio of base vs. fluctuating load from GUI SETTINGS
 	private double getConsumption() {
 		double [] consumption_pattern = null; //initialize consumption array
 		
@@ -45,7 +43,7 @@ public class ApplianceAgent extends Agent {
 			consumptionGearing = 1-consumptionGearing;
 		
 		try {
-			consumption_pattern = readCSVData(consumptionType); //dummy value 
+			consumption_pattern = readCSVData(consumptionType); 
 		} catch (Exception e) {
 			System.out.println("CSV read in unsuccessful");
 			e.printStackTrace();
@@ -90,7 +88,7 @@ public class ApplianceAgent extends Agent {
 				updateSettings();
 				JSONObject req = getRequestContent(request);
 				timeStep = req.getInt("time");
-				log("Sending consumption data with settings : yearlyCOnsumption: "+ yearlyConsumption+" , consumptionGearing : " + consumptionGearing);
+				log("Sending consumption data with settings : yearlyCOnsumption = "+ yearlyConsumption+", consumptionGearing = " + consumptionGearing);
 				ACLMessage consumptionMessageResponse = request.createReply();
 				consumptionMessageResponse.setPerformative(ACLMessage.INFORM);
 				String contentJSON = "{'consumption':" + getConsumption() +",'unit':'kWh','consumptionType':'"+consumptionType+"'}";

@@ -36,11 +36,10 @@ import apiWrapper.HttpClient;
 
 @SuppressWarnings("serial")
 public class GenerationAgent extends Agent {
-	double generationCapacity = 20; //dummy value SETTINGS TO BE FETCHED
+	double generationCapacity = 2.5; 
 	private HttpClient httpClient;
 	private String API_URL;
 	
-	//TODO: needs input about yearly consumption, and ratio of base vs. fluctuating load from GUI SETTINGS
 	private double getProduction() {
 		double [] productionPattern = null; //initialize consumption array
 		
@@ -88,11 +87,11 @@ public class GenerationAgent extends Agent {
 				JSONObject req = getRequestContent(request);
 				timeStep = req.getInt("time");
 				updateSettings();
-				log("Sending generation data with settings : generationCapacity =" + generationCapacity);
+				log("Sending generation data with settings : generationCapacity = " + generationCapacity);
 				ACLMessage productionMessageResponse = request.createReply();
 				productionMessageResponse.setPerformative(ACLMessage.INFORM);
 				String contentJSON = "{'consumption':" + getProduction() +",unit:'kWh','consumptionType':'PV_generation'}";
-				productionMessageResponse.setContent(contentJSON); //TODO REFACTOR OUT OF BEHAVIOUR
+				productionMessageResponse.setContent(contentJSON);
 				return productionMessageResponse;
 			}
 

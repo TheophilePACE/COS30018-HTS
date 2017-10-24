@@ -89,22 +89,7 @@ public class HomeAgent extends Agent {
 			nResponders = nbAppliances;
 			log("Sending consumption requests");
 		}
-		private ACLMessage createTradeRequest(double quantity) {
-			
-			ACLMessage tradeRequest = new ACLMessage(ACLMessage.REQUEST);
-			// Add receivers from input args
-			tradeRequest.addReceiver(new AID(brokerAgentAddress, AID.ISLOCALNAME));
-			// Set the interaction protocol
-			tradeRequest.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
-			// Specify the reply deadline (10 seconds)
-			tradeRequest.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
-			// Set message content, if quantity >0 we need to buy otherwise sell
-			String contentJSON = "{'requestType':'" 
-					+( ( quantity > 0) ? "Buy" : "Sell" )+ 
-					"','quantity':" + quantity + "}";
-			tradeRequest.setContent(contentJSON);
-			return tradeRequest;
-		}
+		
 		protected void handleInform(ACLMessage inform) {
 			//Received the expected information
 			JSONObject JSONmsg = new JSONObject(inform.getContent());
@@ -182,11 +167,31 @@ public class HomeAgent extends Agent {
 				log("Responder does not exist");
 			} else {
 				log(failure.getSender().getLocalName() + " failed to perform the requested action");
-				log("<----------------- || END OF NEGOTIATION || UNSUCCESSFUL ||---------------------->");
+				log("Trying again...");
+				double quantity = makeEnergyBalance();
+				ACLMessage tradeRequest = createTradeRequest(quantity);
+				myAgent.addBehaviour(new Negotiation(myAgent,tradeRequest));
 			}
 		}
 	}
 
+	private ACLMessage createTradeRequest(double quantity) {
+		
+		ACLMessage tradeRequest = new ACLMessage(ACLMessage.REQUEST);
+		// Add receivers from input args
+		tradeRequest.addReceiver(new AID(brokerAgentAddress, AID.ISLOCALNAME));
+		// Set the interaction protocol
+		tradeRequest.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
+		// Specify the reply deadline (10 seconds)
+		tradeRequest.setReplyByDate(new Date(System.currentTimeMillis() + 10000));
+		// Set message content, if quantity >0 we need to buy otherwise sell
+		String contentJSON = "{'requestType':'" 
+				+( ( quantity > 0) ? "Buy" : "Sell" )+ 
+				"','quantity':" + quantity + "}";
+		tradeRequest.setContent(contentJSON);
+		return tradeRequest;
+	}
+	
 	private ACLMessage createConsumptionRequest(AID[] appReceivers, AID[] genReceivers) {
 		ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
 		for (int i = 0; i < appReceivers.length; ++i) {
@@ -204,20 +209,20 @@ public class HomeAgent extends Agent {
 	private void setApplianceEnergyBalance(String applianceName, Double balance) {
 		applianceEnergyBalance.put(applianceName, balance);
 	}
-	//TODO consider positive negative ...
+
 	private double makeEnergyBalance() {
 		energyConsumed = 0;
 		energyProducted = 0;
 
 		applianceEnergyBalance.forEach((k,v)->{
 			if(v>0)
-				energyConsumed+=v;
+				energyConsumed = round(energyConsumed + v, 3);
 			else
-				energyProducted+=v;
+				energyProducted = round(energyProducted + v, 3);
 		});
 		applianceEnergyBalance.clear(); // remove old values
 
-		energyBalance = energyConsumed + energyProducted;
+		energyBalance = round(energyConsumed + energyProducted, 3);
 		return energyBalance;
 	}
 

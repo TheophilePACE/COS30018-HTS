@@ -33,7 +33,7 @@ import apiWrapper.HttpClient;
 public class BrokerAgent extends Agent {
 	private String requestType;		// The type of request for the broker to perform (buy/sell)
 	private String brokeredDeal;	// The deal and price achieved by the broker agent
-	private double quantity;			// The number of units requested
+	private double quantity;		// The number of units requested
 	private AID[] retailAgents; 	// The list of known retail agents
 	
 	//Limits for dealing. 
@@ -45,7 +45,7 @@ public class BrokerAgent extends Agent {
 	private double bestPrice; // The best offered price
 	private int repliesCnt;  // The counter of replies from seller agents
 	private int round;	// The current round of negotiation
-	private int roundLimit = 31; // The maximum no. of rounds of negotiation. ****THIS NEEDS TO BE SET VIA GUI OR SOMETHING****
+	private int roundLimit = 31; // The maximum no. of rounds of negotiation.
 	private boolean end; // Represents negotiation round limit status
 	
 	private HttpClient httpClient;
@@ -88,14 +88,10 @@ public class BrokerAgent extends Agent {
 					quantity = req.getDouble("quantity");
 					
 					//update the roundLimit, the min price and the max buy
-					updateSettings();                  //******UNCOMMENT FOR API SETTINGS*********
+					updateSettings();
 					round = 1;
 					end = false;
 					
-					// Perform ContractNetInitiator behaviour
-					// Get reference of this behaviour
-					// Remove it after adding ContractNetInitiator and re-add in onEnd() method of ContractNetInitiator
-					b = this;
 					// Fill the CFP message
 					ACLMessage msg = new ACLMessage(ACLMessage.CFP);
 					for (int i = 0; i < retailAgents.length; ++i) {
@@ -108,23 +104,23 @@ public class BrokerAgent extends Agent {
 					msg.setContent(contentJSON);
 					log("Sending price requests");
 					
-					 
+					// Perform ContractNetInitiator behaviour
+					// Get reference of this behaviour
+					// Remove it after adding ContractNetInitiator and re-add in onEnd() method of ContractNetInitiator
+					b = this; 
 					myAgent.addBehaviour(new ContractNetInitiator(myAgent, msg) {
-						Vector refusals = new Vector();
-						
 						protected void handlePropose(ACLMessage propose, Vector v) {
 							log(propose.getSender().getLocalName() + " offered: " + propose.getContent());
 						}
 						
 						protected void handleRefuse(ACLMessage refuse) {
 							log(refuse.getSender().getLocalName() + " refused");
-							refusals.addElement(refuse.getSender());
+							repliesCnt--;
 						}
 						
 						protected void handleFailure(ACLMessage failure) {
 							if (failure.getSender().equals(myAgent.getAMS())) {
-								// FAILURE notification from the JADE runtime: the receiver
-								// does not exist
+								// FAILURE notification from the JADE runtime: the receiver does not exist
 								log("Responder does not exist");
 							}
 							else {
@@ -149,19 +145,6 @@ public class BrokerAgent extends Agent {
 							round++;
 							if (round == roundLimit)
 								end = true;
-							
-							for (int i = 0; i < refusals.size(); i++)
-							{
-								ACLMessage reoffer = new ACLMessage(ACLMessage.CFP);
-								reoffer.addReceiver((AID) refusals.get(i));
-								reoffer.setProtocol(FIPANames.InteractionProtocol.FIPA_CONTRACT_NET);
-								// We want to receive a reply in 5 secs
-								reoffer.setReplyByDate(new Date(System.currentTimeMillis() + 5000));
-								String contentJSON = "{'requestType':'" + requestType + "','quantity':" + quantity + ",'round':" + round + ",'end':" + end +"}";
-								reoffer.setContent(contentJSON);
-								acceptances.addElement(reoffer);
-								refusals.clear();
-							}
 							
 							if (requestType.equals("Buy"))
 							{
@@ -283,7 +266,7 @@ public class BrokerAgent extends Agent {
 					myAgent.removeBehaviour(this);
 				}	
 				else {
-					log("Cannot initiate negotiation.");
+					log("Cannot initiate negotiation. No retail agents found.");
 					throw new RefuseException("evaluation-failed");
 				}
 				return null;
