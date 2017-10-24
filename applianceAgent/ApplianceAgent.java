@@ -50,8 +50,8 @@ public class ApplianceAgent extends Agent {
 			System.out.println("CSV read in unsuccessful");
 			e.printStackTrace();
 		}
-		double consumption_hourly = consumption_pattern[timeStep - (int) (timeStep/168)*168] * consumptionGearing * yearlyConsumption; // calculates the hourly consumption depending on the hour of the week (max 168h), restarts at hour 0 if second week starts
-		return consumption_hourly; 
+		double consumptionHourly = consumption_pattern[timeStep - (int) (timeStep/168)*168] * consumptionGearing * yearlyConsumption; // calculates the hourly consumption depending on the hour of the week (max 168h), restarts at hour 0 if second week starts
+		return round(consumptionHourly,3); 
 	}
 	private String HOME_AGENT_ADDRESS;
 	private String serviceType;
@@ -188,5 +188,9 @@ public class ApplianceAgent extends Agent {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	private static double round (double value, int precision) {
+	    int scale = (int) Math.pow(10, precision);
+	    return (double) Math.round(value * scale) / scale;
 	}
 }

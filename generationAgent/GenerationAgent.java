@@ -45,8 +45,8 @@ public class GenerationAgent extends Agent {
 			System.out.println("CSV read in unsuccessful");
 			e.printStackTrace();
 		}
-		double production_hourly = productionPattern[timeStep - (int) (timeStep/168)*168] * installedCapacity;
-		return production_hourly * -1; 
+		double productionHourly = productionPattern[timeStep - (int) (timeStep/168)*168] * installedCapacity;
+		return round(productionHourly * -1,3); 
 	}
 	private String HOME_AGENT_ADDRESS;
 	private String serviceType;
@@ -164,5 +164,9 @@ public class GenerationAgent extends Agent {
 				new ParseDouble() //relative PV production
 		};
 		return processors;
-	}	
+	}
+	private static double round (double value, int precision) {
+	    int scale = (int) Math.pow(10, precision);
+	    return (double) Math.round(value * scale) / scale;
+	}
 }
