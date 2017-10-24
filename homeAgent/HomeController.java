@@ -50,11 +50,12 @@ public class HomeController {
 		return makeCreateAppliance(agentName, HOME_AGENT_ADDRESS, homeContainer, "Appliance", agentName, API_URL,consumptionType);
 	}
 
-	private AgentController makeCreateGeneration(String agentName, String homeAgentAddress, ContainerController containerController, String serviceType, String serviceName) {
-		Object[] appArgs = new Object[3];
+	private AgentController makeCreateGeneration(String agentName, String homeAgentAddress, ContainerController containerController, String serviceType, String serviceName, String API_URL) {
+		Object[] appArgs = new Object[4];
 		appArgs[0] = homeAgentAddress;
 		appArgs[1] = serviceType;
 		appArgs[2] = serviceName;
+		appArgs[3] = API_URL;
 		try {
 			AgentController generationCtrl = containerController.createNewAgent(agentName, GenerationAgent.class.getName(), appArgs);
 			generationCtrl.start();
@@ -64,8 +65,8 @@ public class HomeController {
 			return null;
 		}
 	}
-	public AgentController createGeneration(String agentName) {
-		return makeCreateGeneration(agentName, HOME_AGENT_ADDRESS, homeContainer, "Generation", agentName);
+	public AgentController createGeneration(String agentName, String apiUrl) {
+		return makeCreateGeneration(agentName, HOME_AGENT_ADDRESS, homeContainer, "Generation", agentName, apiUrl);
 	}
 
 	private AgentController makeCreateHomeAgent(String name,String API_URL, long cycleTime, String brokerAgentAddress) {

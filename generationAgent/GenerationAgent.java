@@ -29,14 +29,19 @@ import org.supercsv.cellprocessor.*;
 import org.supercsv.cellprocessor.ift.*;
 import org.supercsv.io.*;
 import org.supercsv.prefs.*;
-//import org.json.*;
+import org.json.*;
+
+import apiWrapper.HttpClient;
+
 
 @SuppressWarnings("serial")
 public class GenerationAgent extends Agent {
+	double generationCapacity = 20; //dummy value SETTINGS TO BE FETCHED
+	private HttpClient httpClient;
+	private String API_URL;
 	
 	//TODO: needs input about yearly consumption, and ratio of base vs. fluctuating load from GUI SETTINGS
 	private double getProduction() {
-		double installedCapacity = 20; //dummy value SETTINGS TO BE FETCHED
 		double [] productionPattern = null; //initialize consumption array
 		
 		try {
@@ -45,8 +50,8 @@ public class GenerationAgent extends Agent {
 			System.out.println("CSV read in unsuccessful");
 			e.printStackTrace();
 		}
-		double productionHourly = productionPattern[timeStep - (int) (timeStep/168)*168] * installedCapacity;
-		return round(productionHourly * -1,3); 
+		double productionHourly = productionPattern[timeStep - (int) (timeStep/168)*168] * generationCapacity;
+		return round(productionHourly * -1,3);
 	}
 	private String HOME_AGENT_ADDRESS;
 	private String serviceType;
@@ -62,7 +67,9 @@ public class GenerationAgent extends Agent {
 		HOME_AGENT_ADDRESS = args[0].toString();
 		serviceType = args[1].toString();
 		serviceName = args[2].toString();
-		
+		API_URL= args[3].toString();
+		httpClient = new HttpClient(API_URL);
+
 		registerService(serviceType, serviceName);
 		log("created: "+serviceName+" -> "+serviceName);
 
@@ -80,7 +87,8 @@ public class GenerationAgent extends Agent {
 				// get current time step
 				JSONObject req = getRequestContent(request);
 				timeStep = req.getInt("time");
-				log("Sending generation data");
+				updateSettings();
+				log("Sending generation data with settings : generationCapacity =" + generationCapacity);
 				ACLMessage productionMessageResponse = request.createReply();
 				productionMessageResponse.setPerformative(ACLMessage.INFORM);
 				String contentJSON = "{'consumption':" + getProduction() +",unit:'kWh'}";
@@ -168,5 +176,15 @@ public class GenerationAgent extends Agent {
 	private static double round (double value, int precision) {
 	    int scale = (int) Math.pow(10, precision);
 	    return (double) Math.round(value * scale) / scale;
+	}
+	private void updateSettings() {
+		try {
+			String settings = httpClient.getSettings();
+			JSONObject jsonSettings = new JSONObject(settings);
+			generationCapacity =  (jsonSettings.getDouble("generationCapacity")); 
+			} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 }

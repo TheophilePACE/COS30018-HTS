@@ -59,7 +59,7 @@ public class GlobalController {
 			homeController.createHomeAgent(API_URL);
 			homeController.createAppliance("applianceAgent1",API_URL,"base_load");
 			homeController.createAppliance("applianceAgent2",API_URL,"fluctutating_load");
-			homeController.createGeneration("generationAgent1");
+			homeController.createGeneration("generationAgent1",API_URL);
 		} catch (Exception e) {
 			log(e.toString());
 		}
