@@ -4,6 +4,9 @@
 
 package global;
 
+import java.sql.Time;
+import java.util.concurrent.TimeUnit;
+
 import org.json.JSONObject;
 
 import apiWrapper.HttpClient;
@@ -16,6 +19,10 @@ import jade.wrapper.*;
 import brokerAgent.BrokerAgentController;
 import homeAgent.HomeController;
 
+
+import java.util.Map;
+
+
 public class GlobalController {
 	private static String HOME_AGENT_ADDRESS = "homeAgent";
 	private static long CYCLE_TIME = 10000;
@@ -25,6 +32,7 @@ public class GlobalController {
 	private static String API_URL = "http://localhost:3001/api";
 
 	private static String getSettings() {
+		log("getting settings from "+API_URL);
 		HttpClient httpc = new HttpClient(API_URL);
 		try {
 			return httpc.getSettings();
@@ -45,8 +53,20 @@ public class GlobalController {
 		}
 		return null;
 	}
-	
+    public static void getEnvApiUrl () {
+        Map<String, String> env = System.getenv();
+        for (String envName : env.keySet()) {
+            System.out.format("%s=%s%n",
+                              envName,
+                              env.get(envName));
+        }
+        if(env.containsKey("API_URL")) {
+        API_URL = (String) env.get("API_URL");
+        }
+         }
+
 	public static void main(String[] args) throws StaleProxyException, InterruptedException {
+		getEnvApiUrl(); 
 		String settings =  getSettings();
 		System.out.println("SETTINGS : "+settings);
 		JSONObject jsonSettings = new JSONObject(settings);
@@ -61,7 +81,7 @@ public class GlobalController {
 		// Launch the Main Container (with the administration GUI on top) listening on port 1099
 		log(": Launching the platform Main Container on port "+ PORT +" ...");
 		ProfileImpl pMain = new ProfileImpl(HOST, PORT, null,true);
-		pMain.setParameter(Profile.GUI, "true");
+		pMain.setParameter(Profile.GUI, "false");
 		@SuppressWarnings("unused")
 		ContainerController mainCtrl = rt.createMainContainer(pMain);
 
@@ -83,6 +103,7 @@ public class GlobalController {
 		brokerAgentController.createRetailerAgent("retailAgent3", "Retail Agent", "Pacific Hydro","16.1");
 		brokerAgentController.createBrokerAgent();
 	}
+	
 	
 	private static String log(String s) {
 		String toPrint = "[" + HomeController.class.getName() + "] " + s;
