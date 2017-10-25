@@ -4,7 +4,6 @@ services:
     depends_on: 
       - api
       - mongodb
-    build: ./
     image: "theophile/cos-api-gui"
     ports:
       - '3000:3000'
@@ -12,7 +11,6 @@ services:
   api:
     depends_on: 
      - mongodb
-    build: ./
     image: "theophile/cos-api-gui"
     ports:
       - '3001:3001'
