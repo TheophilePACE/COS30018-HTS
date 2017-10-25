@@ -81,7 +81,7 @@ public class GlobalController {
 		// Launch the Main Container (with the administration GUI on top) listening on port 1099
 		log(": Launching the platform Main Container on port "+ PORT +" ...");
 		ProfileImpl pMain = new ProfileImpl(HOST, PORT, null,true);
-		pMain.setParameter(Profile.GUI, "false");
+		pMain.setParameter(Profile.GUI, "true");
 		@SuppressWarnings("unused")
 		ContainerController mainCtrl = rt.createMainContainer(pMain);
 
