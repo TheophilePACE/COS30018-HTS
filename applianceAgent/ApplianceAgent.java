@@ -19,6 +19,8 @@ import jade.domain.FIPAAgentManagement.RefuseException;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 
 import java.io.FileReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Map;
 
 import org.json.JSONObject;
@@ -139,12 +141,13 @@ public class ApplianceAgent extends Agent {
 		return toPrint;
 	}
 	//Method to retrieve consumption data from CSV file
-	private static double [] readCSVData(String target) throws Exception{
-		final String CSV_FILENAME = "src/Total_Data.csv"; 
+	private double [] readCSVData(String target) throws Exception{
+		final String CSV_FILENAME = "Total_Data.csv"; 
 		double [] data = new double [168]; // array length equals to number of hours of 7days (24h * 7d)
 		ICsvMapReader mapReader = null;
+		InputStream in = this.getClass().getClassLoader().getResourceAsStream("Total_Data.csv");
 		try {
-			mapReader = new CsvMapReader(new FileReader(CSV_FILENAME), CsvPreference.STANDARD_PREFERENCE);
+			mapReader = new CsvMapReader(new InputStreamReader(in), CsvPreference.STANDARD_PREFERENCE);
 
 			final String[] header = mapReader.getHeader(true); 
 			final CellProcessor[] processors = getProcessors();
