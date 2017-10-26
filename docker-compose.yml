@@ -1,0 +1,29 @@
+version: "3"
+services:
+  gui:
+    depends_on: 
+      - api
+      - mongodb
+    image: "theophile/cos-api-gui"
+    ports:
+      - '3000:3000'
+    command: "npm run startGui"
+  api:
+    depends_on: 
+     - mongodb
+    image: "theophile/cos-api-gui"
+    ports:
+      - '3001:3001'
+    command: "npm run startApi "
+  mongodb:
+    image: mongo
+    ports:
+      - '27017:27017'
+  jade:
+    depends_on: 
+     - api
+     - mongodb
+    image: "theophile/cos-jade"
+    environment:
+      - API_URL=http://api:3001/api
+    command: "java -jar cos-30018-runnable-withAPI.jar"
