@@ -6,7 +6,7 @@ services:
       - mongodb
     image: "theophile/cos-api-gui"
     ports:
-      - '3000:3000'
+      - '3000:80'
     command: "npm run startGui"
   api:
     depends_on: 
