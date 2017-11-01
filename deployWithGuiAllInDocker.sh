@@ -1,7 +1,8 @@
 #!/bin/bash
 docker-compose down
 docker-compose pull
-docker-compose up -d
+docker-compose up -d gui api mongodb
+sleep 10
 if [ "$(uname)" == "Darwin" ]; then
     open http://localhost:3000
     echo "browser opend on localhost:3000!"
@@ -14,4 +15,5 @@ elif [ "$(expr substr $(uname -s) 1 10)" == "MINGW64_NT" ]; then
 else
     echo "you will have to open your browser yourself !"
 fi
+docker-compose up -d jade
 docker-compose logs -ft jade
