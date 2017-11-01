@@ -7,6 +7,8 @@ services:
     image: "theophile/cos-api-gui"
     ports:
       - '80:3000'
+    environment:
+      - API_URL=http://api:3001/api
     command: "npm run startGui"
   api:
     depends_on: 
